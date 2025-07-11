@@ -1,0 +1,22 @@
+# 🧪 Run commitlint 
+echo ""
+echo "🧪 Running Commitlint to validate your commit message..."
+
+if pnpm commitlint $1; then
+  echo ""
+  echo "🎉 Success! Your commit message is on point! 🚀"
+  echo "✅ Proceeding with the commit..."
+else
+  echo ""
+  echo "💥 Commit message rejected!"
+  echo "❌ Your commit message does not follow the conventional format."
+  echo ""
+  echo "📌 Example formats:"
+  echo "   - feat(auth): add login button"
+  echo "   - fix(wallet): handle empty balance state"
+  echo "   - style(lint): auto-fix code formatting"
+  echo ""
+  echo "📚 Read more: https://www.conventionalcommits.org"
+  echo "🛑 Commit aborted. Please revise your message."
+  exit 1
+fi

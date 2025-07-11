@@ -1,0 +1,51 @@
+# 🔍 Run lint-staged
+echo ""
+echo "🔍 Running lint-staged..."
+pnpm lint-staged
+
+if [ $? -ne 0 ]; then
+  echo "❌ lint-staged failed. Fix the issues before committing."
+  exit 1
+else
+  echo "✅ lint-staged passed."
+fi
+
+# 🚨 Run ESLint in production mode
+echo ""
+echo "🚨 Running production lint (ESLint)..."
+pnpm lint:prod
+
+if [ $? -ne 0 ]; then
+  echo "❌ ESLint failed in production mode. Please fix lint errors."
+  exit 1
+else
+  echo "✅ ESLint passed."
+fi
+
+# 🛠️  TypeScript type check
+echo ""
+echo "🛠️  Running TypeScript type check..."
+pnpm tsc
+
+if [ $? -ne 0 ]; then
+  echo "❌ TypeScript type check failed. Fix type errors before committing."
+  exit 1
+else
+  echo "✅ TypeScript check passed."
+fi
+
+# 🏗️  Build project
+echo ""
+echo "🏗️  Building project..."
+pnpm build
+
+if [ $? -ne 0 ]; then
+  echo "❌ Build failed. Fix build errors before committing."
+  exit 1
+else
+  echo "✅ Build succeeded."
+fi
+
+# 🎉 Final success message
+echo ""
+echo "🎉 All checks passed. Proceeding with commit."
