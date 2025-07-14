@@ -25,12 +25,16 @@ const Configuration: UserConfig = {
       2,
       "always",
       [
+        "layout", // Layout changes
+        "api", // API changes
+        "auth", // Authentication changes
         "setup", // Project setup
         "config", // Configuration files
         "deps", // Dependency updates
         "feature", // Feature-specific changes
         "bug", // Bug fixes
         "docs", // Documentation
+        "lint", // Linting
         "style", // Code style/formatting
         "refactor", // Code refactoring
         "test", // Tests
