@@ -21,7 +21,13 @@ export default tseslint.config({
     "@typescript-eslint": tseslint.plugin,
     prettier: prettierPlugin,
   },
-  ignores: ["next.config.js", "postcss.config.js", "public/**", ".next/**"],
+  ignores: [
+    "next.config.js",
+    "postcss.config.js",
+    "public/**",
+    ".next/**",
+    "next-env.d.ts",
+  ],
   files: ["**/*.{js,mjs,cjs,ts,jsx,tsx}"],
   rules: {
     "@typescript-eslint/no-unused-vars": IS_PRODUCTION ? "error" : "warn",
