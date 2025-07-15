@@ -30,7 +30,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "eslint.config.mjs",
-    "postcss.config.mjs"
+    "postcss.config.mjs",
+    ".papi/**/*"
   ],
   "exclude": ["node_modules"]
 }

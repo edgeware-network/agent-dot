@@ -1,6 +1,6 @@
 {
   "name": "agent-dot",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
@@ -13,16 +13,19 @@
     "format:fix": "prettier --write --list-different .",
     "prepare": "husky",
     "lint-staged": "lint-staged",
+    "postinstall": "pnpm papi",
     "commitlint": "commitlint --edit"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
+    "@polkadot-api/descriptors": "file:.papi\\descriptors",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.525.0",
     "next": "15.3.5",
+    "polkadot-api": "^1.14.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.60.0",
