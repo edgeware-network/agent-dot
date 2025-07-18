@@ -7,6 +7,7 @@ import {
   unbounded,
   workSans,
 } from "@/lib/font";
+import { Providers } from "@/providers";
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import "./globals.css";
@@ -27,7 +28,7 @@ export default function RootLayout({
       <body
         className={`${geist.variable} ${manrope.variable} ${montserrat.variable} ${outfit.variable} ${poppins.variable} ${unbounded.variable} ${workSans.variable} antialiased`}
       >
-        {children}
+        <Providers>{children}</Providers>
         <Toaster
           position="bottom-right"
           richColors
