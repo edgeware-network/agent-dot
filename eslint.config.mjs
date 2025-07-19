@@ -28,6 +28,7 @@ export default tseslint.config({
     ".next/**",
     "next-env.d.ts",
     ".papi/**",
+    "scripts/dist/**",
   ],
   files: ["**/*.{js,mjs,cjs,ts,jsx,tsx}"],
   rules: {

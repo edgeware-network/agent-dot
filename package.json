@@ -1,6 +1,6 @@
 {
   "name": "agent-dot",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
@@ -13,7 +13,10 @@
     "format:fix": "prettier --write --list-different .",
     "prepare": "husky",
     "lint-staged": "lint-staged",
-    "postinstall": "pnpm papi",
+    "scripts:build": "tsc -p tsconfig.node.json",
+    "path:fix": "pnpm scripts:build && node scripts/dist/fix-path.js",
+    "path:revert": "pnpm scripts:build && node scripts/dist/revert-path.js",
+    "postinstall": "pnpm path:fix && pnpm papi",
     "commitlint": "commitlint --edit"
   },
   "dependencies": {
