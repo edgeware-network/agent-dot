@@ -1,4 +1,5 @@
 import ConnectButton from "@/app/(chat)/connect-button";
+import { ChainSelectButton } from "@/components/account";
 import Link from "next/link";
 
 export default function ChatHeader() {
@@ -7,7 +8,10 @@ export default function ChatHeader() {
       <Link href="/">
         <h2>AgentDot</h2>
       </Link>
-      <ConnectButton />
+      <div className="flex items-center gap-2">
+        <ChainSelectButton />
+        <ConnectButton />
+      </div>
     </header>
   );
 }

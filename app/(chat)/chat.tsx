@@ -30,7 +30,7 @@ export default function Chat() {
 
   return (
     <>
-      <div className="bg-background flex h-dvh min-w-0 flex-col">
+      <div className="bg-background flex h-dvh min-w-0 flex-col max-sm:pb-2">
         <ChatHeader />
         <Messages />
         <Form {...form}>
