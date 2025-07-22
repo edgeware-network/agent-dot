@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { text, varchar, timestamp, pgTable } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -11,10 +11,10 @@ export const resources = pgTable("resources", {
     .$defaultFn(() => nanoid()),
   content: text("content").notNull(),
 
-  createdAt: timestamp("created_at")
+  createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
-  updatedAt: timestamp("updated_at")
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .default(sql`now()`),
 });
