@@ -30,7 +30,7 @@
       "@/config/*": ["config/*"],
       "@/constants/*": ["constants/*"],
       "@/db/*": ["db/*"],
-      "@/schemas/*": ["schemas/*"],
+      "@/schemas/*": ["db/schemas/*"],
       "@/validators/*": ["validators/*"],
       "@/services/*": ["services/*"],
       "@/api/*": ["api/*"],
