@@ -1,9 +1,9 @@
-/* eslint-disable no-console */
 import { env } from "@/lib/env";
-
 import { drizzle } from "drizzle-orm/postgres-js";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
+import pino from "pino";
 import postgres from "postgres";
+const logger = pino({ transport: { target: "pino-pretty" } });
 
 const runMigrate = async () => {
   if (!env.DATABASE_URI) {
@@ -12,9 +12,9 @@ const runMigrate = async () => {
 
   const connection = postgres(env.DATABASE_URI, { max: 1 });
 
-  const db = drizzle(connection);
+  const db = drizzle(connection, { logger: true });
 
-  console.log("⏳ Running migrations...");
+  logger.info("Running migrations...");
 
   const start = Date.now();
 
@@ -22,13 +22,13 @@ const runMigrate = async () => {
 
   const end = Date.now();
 
-  console.log("✅ Migrations completed in", end - start, "ms");
-
+  logger.info("Migrations completed in %dms", end - start);
   process.exit(0);
 };
 
 runMigrate().catch((err: unknown) => {
-  console.error("❌ Migration failed");
-  console.error(err);
+  const error = err as Error;
+  logger.error("❌ Migration failed");
+  logger.error(error.message);
   process.exit(1);
 });
