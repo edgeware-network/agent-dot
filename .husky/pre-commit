@@ -1,33 +1,3 @@
-OS="$(uname)"
-
-if [ "$OS" = "Linux" ] || [ "$OS" = "Darwin" ]; then
-  echo ""
-  echo "💻 Unix-based system detected. Checking @polkadot-api/descriptors path..."
-
-  if grep -q '"@polkadot-api/descriptors": "file:.papi/descriptors"' package.json; then
-    echo "❌ Invalid path format detected in package.json for @polkadot-api/descriptors."
-    echo "🛠  Expected: 'file:.papi\\descriptors'"
-    echo "🔒 Commit aborted to prevent cross-platform compatibility issues."
-    echo "💡 Run 'pnpm revert:path' to correct the path for Windows."
-    exit 1
-  else
-    echo "✅ Path format is correct: using backslashes for Windows."
-  fi
-
-  if grep -q "specifier: file:.papi/descriptors" pnpm-lock.yaml; then
-    echo "❌ Invalid path format detected in pnpm-lock.yaml for @polkadot-api/descriptors."
-    echo "🛠  Expected: 'specifier: file:.papi\descriptors'"
-    echo "🔒 Commit aborted to prevent cross-platform compatibility issues."
-    echo "💡 Run 'pnpm revert:path' to correct the path for Windows."
-    exit 1
-  else
-    echo "✅ Path format is correct: using backslash for Windows."
-  fi
-  else
-  echo ""
-  echo "🪟 Windows detected. Skipping @polkadot-api/descriptors path check."
-fi
-
 # 🔍 Run lint-staged
 echo ""
 echo "🔍 Running lint-staged..."
