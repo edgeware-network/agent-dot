@@ -11,9 +11,9 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { ChatSchema, chatSchema } from "@/db/schema";
+import { useChat } from "@ai-sdk/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 
 export default function Chat() {
   const form = useForm<ChatSchema>({
@@ -23,8 +23,10 @@ export default function Chat() {
     },
   });
 
+  const { messages, sendMessage } = useChat();
+
   function onSubmit(data: ChatSchema) {
-    toast.message(`${data.prompt} is being processed...`);
+    void sendMessage({ text: data.prompt });
     form.reset();
   }
 
@@ -32,7 +34,7 @@ export default function Chat() {
     <>
       <div className="bg-background flex h-dvh min-w-0 flex-col max-sm:pb-2">
         <ChatHeader />
-        <Messages />
+        <Messages messages={messages} />
         <Form {...form}>
           <form
             onSubmit={(e) => void form.handleSubmit(onSubmit)(e)}
