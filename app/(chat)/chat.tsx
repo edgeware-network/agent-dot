@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ChatSchema, chatSchema } from "@/db/schema";
 import { useSyncedRef } from "@/hooks/use-sync-ref";
 import { getAccountBalance, matchInjectedAccount } from "@/lib/polkadot-api";
-import { AvailableApis, ChainConfig } from "@/papi-config";
+import { AvailableApis, chainConfig, ChainConfig } from "@/papi-config";
 import { ExtenstionContext } from "@/providers/extension-provider";
 import { useLightClientApi } from "@/providers/light-client-provider";
 import { useChat } from "@ai-sdk/react";
@@ -138,6 +138,16 @@ export default function Chat() {
             },
           });
         }
+      }
+
+      if (toolCall.toolName === "getAvailableNetworks") {
+        const networks = chainConfig.map((chain) => chain.name);
+
+        void addToolResult({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output: JSON.stringify(networks),
+        });
       }
     },
   });

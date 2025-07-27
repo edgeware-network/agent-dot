@@ -1,5 +1,6 @@
 import {
   getActiveAccount,
+  getAvailableNetworks,
   getBalances,
   getConnectedAccounts,
   setActiveAccount,
@@ -31,6 +32,7 @@ You MUST always respond by calling one of the following tools based on the user'
     • getConnectedAccounts — list connected polkadot-compatible accounts.
     • getActiveAccount — fetch the currently active account.
     • setActiveAccount — set the active account (must fetch connected accounts first).
+    • getAvailableNetworks — list available polkadot-compatible networks/chains.
 
 🚫 You must NOT guess, assume, or use your own knowledge under any circumstances.
 
@@ -52,6 +54,7 @@ const tools: ToolSet = {
   getConnectedAccounts: getConnectedAccounts,
   getActiveAccount: getActiveAccount,
   setActiveAccount: setActiveAccount,
+  getAvailableNetworks: getAvailableNetworks,
 };
 
 export async function POST(req: Request) {

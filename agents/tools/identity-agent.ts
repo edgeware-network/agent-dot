@@ -45,9 +45,16 @@ const setActiveAccount = tool({
   }),
 });
 
+const getAvailableNetworks = tool({
+  name: "getAvailableNetworks",
+  description: "Get the list of available polkadot-compatible networks/chains.",
+  inputSchema: z.object({}),
+});
+
 export {
   getActiveAccount,
   getBalances,
   getConnectedAccounts,
   setActiveAccount,
+  getAvailableNetworks,
 };
