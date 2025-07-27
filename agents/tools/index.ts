@@ -1,1 +1,4 @@
-export { getBalances } from "@/agents/tools/identity-agent";
+export {
+  getBalances,
+  getConnectedAccounts,
+} from "@/agents/tools/identity-agent";

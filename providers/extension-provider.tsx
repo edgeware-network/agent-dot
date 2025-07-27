@@ -31,6 +31,7 @@ interface ExtensionContext {
   selectedExtensions: InjectedExtension[];
   isWalletOpen: boolean;
   setIsWalletOpen: (open: boolean) => void;
+  connectedAccounts: InjectedPolkadotAccount[];
 }
 
 interface ExtensionAccount {
@@ -146,6 +147,7 @@ export const ExtenstionContext = createContext<ExtensionContext>({
   onToggleExtension: () => Promise.resolve(),
   availableExtensions: [],
   selectedExtensions: [],
+  connectedAccounts: [],
 });
 
 export function ExtensionProvider({ children }: { children: ReactNode }) {
@@ -251,6 +253,9 @@ export function ExtensionProvider({ children }: { children: ReactNode }) {
         availableExtensions,
         selectedExtensions: [...selectedExtensions.values()].map(
           (ext) => ext.extension,
+        ),
+        connectedAccounts: [...selectedExtensions.values()].flatMap(
+          (ext) => ext.accounts,
         ),
       }}
     >

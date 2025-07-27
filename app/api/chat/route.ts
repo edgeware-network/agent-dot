@@ -1,4 +1,4 @@
-import { getBalances } from "@/agents/tools";
+import { getBalances, getConnectedAccounts } from "@/agents/tools";
 import { openai } from "@ai-sdk/openai";
 import {
   convertToModelMessages,
@@ -23,6 +23,7 @@ You MUST always respond by calling one of the following tools based on the user'
     • getBalances — Read on-chain balance for a wallet address on a specified network/chain.
         - If wallet address is not provided, use the active account.
         - If network/chain is not specified, use the active network/chain.
+    • getConnectedAccounts — list connected polkadot-compatible accounts.
 
 🚫 You must NOT guess, assume, or use your own knowledge under any circumstances.
 
@@ -39,7 +40,10 @@ Avoid hallucinations, assumptions, or speculation.
 Your only goal is to assist users with reliable, tool-backed answers — nothing more, nothing less.
 `.trim();
 
-const tools: ToolSet = { getBalances };
+const tools: ToolSet = {
+  getBalances: getBalances,
+  getConnectedAccounts: getConnectedAccounts,
+};
 
 export async function POST(req: Request) {
   const { messages } = (await req.json()) as { messages: UIMessage[] };

@@ -17,4 +17,11 @@ const getBalances = tool({
   }),
 });
 
-export { getBalances };
+const getConnectedAccounts = tool({
+  name: "getConnectedAccounts",
+  description:
+    "Get the list of connected polkadot-compatible wallet addresses.",
+  inputSchema: z.object({}),
+});
+
+export { getBalances, getConnectedAccounts };

@@ -14,6 +14,7 @@ import { ChatSchema, chatSchema } from "@/db/schema";
 import { useSyncedRef } from "@/hooks/use-sync-ref";
 import { getAccountBalance } from "@/lib/polkadot-api";
 import { AvailableApis, ChainConfig } from "@/papi-config";
+import { ExtenstionContext } from "@/providers/extension-provider";
 import { useLightClientApi } from "@/providers/light-client-provider";
 import { useChat } from "@ai-sdk/react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,12 +23,19 @@ import {
   lastAssistantMessageIsCompleteWithToolCalls,
 } from "ai";
 import { SS58String } from "polkadot-api";
+import { InjectedPolkadotAccount } from "polkadot-api/pjs-signer";
+import { use } from "react";
 import { useForm } from "react-hook-form";
 
 export default function Chat() {
   const { api, activeChain } = useLightClientApi();
+  const { connectedAccounts } = use(ExtenstionContext);
+
+  // refs to pass down to useChat
   const activeChainRef = useSyncedRef<ChainConfig>(activeChain);
   const apiRef = useSyncedRef<AvailableApis | null>(api);
+  const connectedAccountsRef =
+    useSyncedRef<InjectedPolkadotAccount[]>(connectedAccounts);
 
   const form = useForm<ChatSchema>({
     resolver: zodResolver(chatSchema),
@@ -50,11 +58,23 @@ export default function Chat() {
           apiRef,
           activeChainRef,
         );
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        addToolResult({
+
+        void addToolResult({
           tool: toolCall.toolName,
           toolCallId: toolCall.toolCallId,
           output: balance,
+        });
+      }
+      if (toolCall.toolName === "getConnectedAccounts") {
+        const accounts = connectedAccountsRef.current.map((account) => ({
+          name: account.name,
+          address: account.address,
+        }));
+
+        void addToolResult({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output: JSON.stringify(accounts),
         });
       }
     },
