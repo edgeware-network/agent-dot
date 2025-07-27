@@ -24,4 +24,30 @@ const getConnectedAccounts = tool({
   inputSchema: z.object({}),
 });
 
-export { getBalances, getConnectedAccounts };
+const getActiveAccount = tool({
+  name: "getActiveAccount",
+  description:
+    "Get the currently active polkadot account for app interactions.",
+  inputSchema: z.object({}),
+});
+
+const setActiveAccount = tool({
+  name: "setActiveAccount",
+  description:
+    "Set the currently active polkadot account for app interactions.",
+  inputSchema: z.object({
+    address: z
+      .string()
+      .describe("A SS58-encoded wallet address to set as active account."),
+    name: z
+      .string()
+      .describe("The name of the account to set as active account."),
+  }),
+});
+
+export {
+  getActiveAccount,
+  getBalances,
+  getConnectedAccounts,
+  setActiveAccount,
+};

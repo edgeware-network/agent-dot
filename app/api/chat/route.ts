@@ -1,4 +1,9 @@
-import { getBalances, getConnectedAccounts } from "@/agents/tools";
+import {
+  getActiveAccount,
+  getBalances,
+  getConnectedAccounts,
+  setActiveAccount,
+} from "@/agents/tools";
 import { openai } from "@ai-sdk/openai";
 import {
   convertToModelMessages,
@@ -24,6 +29,8 @@ You MUST always respond by calling one of the following tools based on the user'
         - If wallet address is not provided, use the active account.
         - If network/chain is not specified, use the active network/chain.
     • getConnectedAccounts — list connected polkadot-compatible accounts.
+    • getActiveAccount — fetch the currently active account.
+    • setActiveAccount — set the active account (must fetch connected accounts first).
 
 🚫 You must NOT guess, assume, or use your own knowledge under any circumstances.
 
@@ -43,6 +50,8 @@ Your only goal is to assist users with reliable, tool-backed answers — nothing
 const tools: ToolSet = {
   getBalances: getBalances,
   getConnectedAccounts: getConnectedAccounts,
+  getActiveAccount: getActiveAccount,
+  setActiveAccount: setActiveAccount,
 };
 
 export async function POST(req: Request) {

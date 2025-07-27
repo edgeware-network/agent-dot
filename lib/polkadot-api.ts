@@ -1,5 +1,7 @@
 import { formatBalance } from "@/lib/utils";
 import { AvailableApis, ChainConfig } from "@/papi-config";
+import { SS58String } from "polkadot-api";
+import { InjectedExtension } from "polkadot-api/pjs-signer";
 import { RefObject } from "react";
 
 export async function getAccountBalance(
@@ -19,4 +21,25 @@ export async function getAccountBalance(
     decimals,
     options: { nDecimals: 3 },
   });
+}
+
+export function matchInjectedAccount(
+  account: {
+    address: SS58String | undefined;
+    name: string;
+  },
+  selectedExtensions: RefObject<InjectedExtension[]>,
+) {
+  const accounts = selectedExtensions.current.flatMap((extension) =>
+    extension.getAccounts().map((account) => ({
+      ext: extension,
+      acc: account,
+    })),
+  );
+
+  return accounts.find(
+    (acc) =>
+      acc.acc.address === account.address ||
+      acc.acc.name?.toLowerCase() === account.name.toLowerCase(),
+  );
 }

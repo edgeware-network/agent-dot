@@ -12,7 +12,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { ChatSchema, chatSchema } from "@/db/schema";
 import { useSyncedRef } from "@/hooks/use-sync-ref";
-import { getAccountBalance } from "@/lib/polkadot-api";
+import { getAccountBalance, matchInjectedAccount } from "@/lib/polkadot-api";
 import { AvailableApis, ChainConfig } from "@/papi-config";
 import { ExtenstionContext } from "@/providers/extension-provider";
 import { useLightClientApi } from "@/providers/light-client-provider";
@@ -23,19 +23,37 @@ import {
   lastAssistantMessageIsCompleteWithToolCalls,
 } from "ai";
 import { SS58String } from "polkadot-api";
-import { InjectedPolkadotAccount } from "polkadot-api/pjs-signer";
+import {
+  InjectedExtension,
+  InjectedPolkadotAccount,
+} from "polkadot-api/pjs-signer";
 import { use } from "react";
 import { useForm } from "react-hook-form";
 
 export default function Chat() {
   const { api, activeChain } = useLightClientApi();
-  const { connectedAccounts } = use(ExtenstionContext);
+  const {
+    connectedAccounts,
+    selectedAccount,
+    setSelectedAccount,
+    selectedExtensions,
+  } = use(ExtenstionContext);
 
   // refs to pass down to useChat
   const activeChainRef = useSyncedRef<ChainConfig>(activeChain);
   const apiRef = useSyncedRef<AvailableApis | null>(api);
   const connectedAccountsRef =
     useSyncedRef<InjectedPolkadotAccount[]>(connectedAccounts);
+  const selectedAccountRef = useSyncedRef<
+    | (InjectedPolkadotAccount & {
+        extension: InjectedExtension;
+      })
+    | null
+  >(selectedAccount);
+  const setSelectedAccountRef =
+    useSyncedRef<typeof setSelectedAccount>(setSelectedAccount);
+  const selectedExtensionsRef =
+    useSyncedRef<InjectedExtension[]>(selectedExtensions);
 
   const form = useForm<ChatSchema>({
     resolver: zodResolver(chatSchema),
@@ -65,6 +83,7 @@ export default function Chat() {
           output: balance,
         });
       }
+
       if (toolCall.toolName === "getConnectedAccounts") {
         const accounts = connectedAccountsRef.current.map((account) => ({
           name: account.name,
@@ -76,6 +95,49 @@ export default function Chat() {
           toolCallId: toolCall.toolCallId,
           output: JSON.stringify(accounts),
         });
+      }
+
+      if (toolCall.toolName === "getActiveAccount") {
+        const active = selectedAccountRef.current;
+
+        void addToolResult({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output: JSON.stringify({
+            name: active?.name,
+            address: active?.address,
+          }),
+        });
+      }
+
+      if (toolCall.toolName === "setActiveAccount") {
+        const account = toolCall.input as {
+          address: SS58String | undefined;
+          name: string;
+        };
+
+        const newAccount = matchInjectedAccount(account, selectedExtensionsRef);
+
+        if (newAccount) {
+          setSelectedAccountRef.current(newAccount.acc, newAccount.ext);
+          void addToolResult({
+            tool: toolCall.toolName,
+            toolCallId: toolCall.toolCallId,
+            output: {
+              success: true,
+              message: `Set active account to ${account.name}`,
+            },
+          });
+        } else {
+          void addToolResult({
+            tool: toolCall.toolName,
+            toolCallId: toolCall.toolCallId,
+            output: {
+              success: false,
+              message: `Account ${account.name} not found`,
+            },
+          });
+        }
       }
     },
   });
