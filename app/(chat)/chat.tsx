@@ -11,11 +11,24 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { ChatSchema, chatSchema } from "@/db/schema";
+import { useSyncedRef } from "@/hooks/use-sync-ref";
+import { getAccountBalance } from "@/lib/polkadot-api";
+import { AvailableApis, ChainConfig } from "@/papi-config";
+import { useLightClientApi } from "@/providers/light-client-provider";
 import { useChat } from "@ai-sdk/react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+} from "ai";
+import { SS58String } from "polkadot-api";
 import { useForm } from "react-hook-form";
 
 export default function Chat() {
+  const { api, activeChain } = useLightClientApi();
+  const activeChainRef = useSyncedRef<ChainConfig>(activeChain);
+  const apiRef = useSyncedRef<AvailableApis | null>(api);
+
   const form = useForm<ChatSchema>({
     resolver: zodResolver(chatSchema),
     defaultValues: {
@@ -23,7 +36,29 @@ export default function Chat() {
     },
   });
 
-  const { messages, sendMessage } = useChat();
+  const { messages, sendMessage, addToolResult } = useChat({
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+    }),
+    async onToolCall({ toolCall }) {
+      // client side tool execution
+      if (toolCall.toolName === "getBalances") {
+        const account = toolCall.input as { address: SS58String };
+        const balance = await getAccountBalance(
+          account.address,
+          apiRef,
+          activeChainRef,
+        );
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        addToolResult({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output: balance,
+        });
+      }
+    },
+  });
 
   function onSubmit(data: ChatSchema) {
     void sendMessage({ text: data.prompt });

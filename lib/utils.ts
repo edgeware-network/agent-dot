@@ -2,6 +2,18 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { customAlphabet } from "nanoid";
 
+export interface FormatCurrencyOptions {
+  nDecimals: number;
+  padToDecimals: boolean;
+  decimalSeparator: string;
+}
+
+const defaultOptions: FormatCurrencyOptions = {
+  nDecimals: Infinity,
+  padToDecimals: true,
+  decimalSeparator: ".",
+};
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -12,3 +24,35 @@ export function trimAddress(address: string, length?: number) {
 }
 
 export const nanoid = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789");
+
+export const formatBalance = ({
+  value,
+  decimals,
+  unit,
+  options,
+}: {
+  value: bigint | null | undefined;
+  decimals: number;
+  unit?: string;
+  options?: Partial<FormatCurrencyOptions>;
+}): string => {
+  const { nDecimals } = {
+    ...defaultOptions,
+    ...options,
+  };
+  if (value === null || value === undefined) return "";
+
+  const precisionMultiplier = 10n ** BigInt(decimals);
+  const isNegative = value < 0n;
+  const absValue = isNegative ? value * -1n : value;
+
+  const fullNumber = Number(absValue) / Number(precisionMultiplier);
+
+  const formattedNumber = fullNumber.toFixed(
+    nDecimals === Infinity ? decimals : nDecimals,
+  );
+
+  const finalNumber = isNegative ? `-${formattedNumber}` : formattedNumber;
+
+  return unit ? `${finalNumber} ${unit}` : finalNumber;
+};
