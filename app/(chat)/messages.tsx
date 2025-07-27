@@ -1,3 +1,4 @@
+import { MemoizedMarkdown } from "@/components/memoized-markdown";
 import { UIMessage } from "ai";
 
 export default function Messages({ messages }: { messages: UIMessage[] }) {
@@ -12,7 +13,11 @@ export default function Messages({ messages }: { messages: UIMessage[] }) {
                 switch (part.type) {
                   case "text":
                     return (
-                      <div key={`${message.id}-${String(i)}`}>{part.text}</div>
+                      <MemoizedMarkdown
+                        key={`${message.id}-part-${String(i)}`}
+                        content={part.text}
+                        id={`${message.id}-part-${String(i)}`}
+                      />
                     );
                 }
               })}
