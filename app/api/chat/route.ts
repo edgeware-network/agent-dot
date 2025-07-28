@@ -1,9 +1,11 @@
 import {
   getActiveAccount,
+  getActiveNetwork,
   getAvailableNetworks,
   getBalances,
   getConnectedAccounts,
   setActiveAccount,
+  setActiveNetwork,
 } from "@/agents/tools";
 import { openai } from "@ai-sdk/openai";
 import {
@@ -33,6 +35,8 @@ You MUST always respond by calling one of the following tools based on the user'
     • getActiveAccount — fetch the currently active account.
     • setActiveAccount — set the active account (must fetch connected accounts first).
     • getAvailableNetworks — list available polkadot-compatible networks/chains.
+    • getActiveNetwork — fetch the currently active network/chain.
+    • setActiveNetwork — set the active network/chain (must fetch available networks first).
 
 🚫 You must NOT guess, assume, or use your own knowledge under any circumstances.
 
@@ -55,6 +59,8 @@ const tools: ToolSet = {
   getActiveAccount: getActiveAccount,
   setActiveAccount: setActiveAccount,
   getAvailableNetworks: getAvailableNetworks,
+  getActiveNetwork: getActiveNetwork,
+  setActiveNetwork: setActiveNetwork,
 };
 
 export async function POST(req: Request) {

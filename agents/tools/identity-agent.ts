@@ -51,10 +51,32 @@ const getAvailableNetworks = tool({
   inputSchema: z.object({}),
 });
 
+const getActiveNetwork = tool({
+  name: "getActiveNetwork",
+  description:
+    "Get the currently active polkadot network/chain for app interactions.",
+  inputSchema: z.object({}),
+});
+
+const setActiveNetwork = tool({
+  name: "setActiveNetwork",
+  description:
+    "Set the currently active polkadot network/chain for app interactions.",
+  inputSchema: z.object({
+    chain: z
+      .string()
+      .describe(
+        "The name of the network/chain to set as active network/chain.",
+      ),
+  }),
+});
+
 export {
   getActiveAccount,
+  getActiveNetwork,
+  getAvailableNetworks,
   getBalances,
   getConnectedAccounts,
   setActiveAccount,
-  getAvailableNetworks,
+  setActiveNetwork,
 };

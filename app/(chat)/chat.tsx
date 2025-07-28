@@ -31,7 +31,7 @@ import { use } from "react";
 import { useForm } from "react-hook-form";
 
 export default function Chat() {
-  const { api, activeChain } = useLightClientApi();
+  const { api, activeChain, setActiveChain } = useLightClientApi();
   const {
     connectedAccounts,
     selectedAccount,
@@ -41,6 +41,7 @@ export default function Chat() {
 
   // refs to pass down to useChat
   const activeChainRef = useSyncedRef<ChainConfig>(activeChain);
+  const setActiveChainRef = useSyncedRef<typeof setActiveChain>(setActiveChain);
   const apiRef = useSyncedRef<AvailableApis | null>(api);
   const connectedAccountsRef =
     useSyncedRef<InjectedPolkadotAccount[]>(connectedAccounts);
@@ -148,6 +149,55 @@ export default function Chat() {
           toolCallId: toolCall.toolCallId,
           output: JSON.stringify(networks),
         });
+      }
+
+      if (toolCall.toolName === "getActiveNetwork") {
+        const network = activeChainRef.current.name;
+
+        void addToolResult({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output: network,
+        });
+      }
+
+      if (toolCall.toolName === "setActiveNetwork") {
+        const input = toolCall.input as {
+          chain: string;
+        };
+        const network = chainConfig.find(
+          (chain) => chain.name.toLowerCase() === input.chain.toLowerCase(),
+        );
+        if (input.chain === activeChainRef.current.name) {
+          void addToolResult({
+            tool: toolCall.toolName,
+            toolCallId: toolCall.toolCallId,
+            output: {
+              success: false,
+              message: `Network ${input.chain} is already active`,
+            },
+          });
+        }
+        if (network) {
+          void setActiveChainRef.current(network);
+          void addToolResult({
+            tool: toolCall.toolName,
+            toolCallId: toolCall.toolCallId,
+            output: {
+              success: true,
+              message: `Set active network to ${network.name}`,
+            },
+          });
+        } else {
+          void addToolResult({
+            tool: toolCall.toolName,
+            toolCallId: toolCall.toolCallId,
+            output: {
+              success: false,
+              message: `Network ${input.chain} not found`,
+            },
+          });
+        }
       }
     },
   });
