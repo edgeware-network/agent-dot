@@ -1,6 +1,8 @@
+import { hexToU8a, isHex } from "@polkadot/util";
+import { decodeAddress } from "@polkadot/util-crypto";
 import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { customAlphabet } from "nanoid";
+import { twMerge } from "tailwind-merge";
 
 export interface FormatCurrencyOptions {
   nDecimals: number;
@@ -56,3 +58,13 @@ export const formatBalance = ({
 
   return unit ? `${finalNumber} ${unit}` : finalNumber;
 };
+
+export function isValidSS58Address(address: string): boolean {
+  try {
+    const decoded = isHex(address) ? hexToU8a(address) : decodeAddress(address);
+
+    return decoded.length === 32;
+  } catch {
+    return false;
+  }
+}

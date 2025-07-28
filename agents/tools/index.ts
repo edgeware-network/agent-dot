@@ -1,9 +1,11 @@
 export {
+  getActiveAccount,
+  getActiveNetwork,
+  getAvailableNetworks,
   getBalances,
   getConnectedAccounts,
-  getActiveAccount,
   setActiveAccount,
-  getAvailableNetworks,
-  getActiveNetwork,
   setActiveNetwork,
 } from "@/agents/tools/identity-agent";
+
+export { transferAgent } from "@/agents/tools/transfer-agent";

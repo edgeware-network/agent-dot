@@ -6,6 +6,7 @@ import {
   getConnectedAccounts,
   setActiveAccount,
   setActiveNetwork,
+  transferAgent,
 } from "@/agents/tools";
 import { openai } from "@ai-sdk/openai";
 import {
@@ -38,6 +39,12 @@ You MUST always respond by calling one of the following tools based on the user'
     • getActiveNetwork — fetch the currently active network/chain.
     • setActiveNetwork — set the active network/chain (must fetch available networks first).
 
+• transferAgent — Prepare and confirm a token transfer on the Polkadot network (DOT, WND, or PAS).
+    - Ask for confirmation before executing. Proceed only if the user types 'yes'.
+    - Use the active account and network.
+    - Validate the recipient SS58 address.
+    - Ensure sufficient balance before sending.
+
 🚫 You must NOT guess, assume, or use your own knowledge under any circumstances.
 
 ✅ You MUST use the appropriate tool for every supported request to fetch real-time data or verified answers.
@@ -61,6 +68,7 @@ const tools: ToolSet = {
   getAvailableNetworks: getAvailableNetworks,
   getActiveNetwork: getActiveNetwork,
   setActiveNetwork: setActiveNetwork,
+  transferAgent: transferAgent,
 };
 
 export async function POST(req: Request) {
