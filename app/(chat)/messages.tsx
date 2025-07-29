@@ -13,6 +13,7 @@ export default function Messages({ messages }: { messages: UIMessage[] }) {
     <>
       <div className="relative flex min-w-0 flex-1 flex-col gap-6 overflow-y-scroll pt-4">
         <div className="mx-auto w-full max-w-3xl px-4">
+          {/* TODO: Fix this message component with useMemo refer vercel docs */}
           {messages.map((message) => (
             <div key={message.id} className="whitespace-pre-wrap">
               {message.role === "user" ? "User: " : "AI: "}
@@ -20,12 +21,14 @@ export default function Messages({ messages }: { messages: UIMessage[] }) {
                 switch (part.type) {
                   case "text":
                     return (
+                      // TODO: UI fix
                       <MemoizedMarkdown
                         key={`${message.id}-part-${String(i)}`}
-                        content={part.text}
+                        content={part.text.trim()}
                         id={`${message.id}-part-${String(i)}`}
                       />
                     );
+                  // TODO: Bug Fix: the tool is not working as intended
                   case "tool-transferAgent": {
                     switch (part.state) {
                       case "input-available": {

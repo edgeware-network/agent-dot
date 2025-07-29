@@ -9,3 +9,8 @@ export {
 } from "@/agents/tools/identity-agent";
 
 export { transferAgent } from "@/agents/tools/transfer-agent";
+
+export {
+  getAvailableRelayChains,
+  getAvailableSystemChains,
+} from "@/agents/tools/xcm-agent";

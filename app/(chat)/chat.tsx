@@ -199,11 +199,49 @@ export default function Chat() {
           });
         }
       }
+
+      if (toolCall.toolName === "getAvailableSystemChains") {
+        const system = chainConfig
+          .filter((chain) => {
+            return typeof chain.chainSpec.para_id === "number";
+          })
+          .map((chain) => {
+            return {
+              name: chain.name,
+              id: chain.chainSpec.para_id,
+            };
+          });
+
+        void addToolResult({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output: JSON.stringify(system),
+        });
+      }
+
+      if (toolCall.toolName === "getAvailableRelayChains") {
+        const relay = chainConfig
+          .filter((chain) => {
+            return typeof chain.chainSpec.para_id === "undefined";
+          })
+          .map((chain) => {
+            return {
+              name: chain.name,
+              type: chain.chainSpec.para_id,
+            };
+          });
+
+        void addToolResult({
+          tool: toolCall.toolName,
+          toolCallId: toolCall.toolCallId,
+          output: JSON.stringify(relay),
+        });
+      }
     },
   });
 
   function onSubmit(data: ChatSchema) {
-    void sendMessage({ text: data.prompt });
+    void sendMessage({ text: data.prompt.trim() });
     form.reset();
   }
 

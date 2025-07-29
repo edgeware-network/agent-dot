@@ -7,6 +7,8 @@ import {
   setActiveAccount,
   setActiveNetwork,
   transferAgent,
+  getAvailableRelayChains,
+  getAvailableSystemChains,
 } from "@/agents/tools";
 import { openai } from "@ai-sdk/openai";
 import {
@@ -45,6 +47,10 @@ You MUST always respond by calling one of the following tools based on the user'
     - Validate the recipient SS58 address.
     - Ensure sufficient balance before sending.
 
+• xcmAgent — Prepare and confirm a cross-chain transfer on the Polkadot network between system and relay chains.
+    • getAvailableSystemChains — list available system chains.
+    • getAvailableRelayChains — list available relay chains.
+
 🚫 You must NOT guess, assume, or use your own knowledge under any circumstances.
 
 ✅ You MUST use the appropriate tool for every supported request to fetch real-time data or verified answers.
@@ -69,6 +75,8 @@ const tools: ToolSet = {
   getActiveNetwork: getActiveNetwork,
   setActiveNetwork: setActiveNetwork,
   transferAgent: transferAgent,
+  getAvailableRelayChains: getAvailableRelayChains,
+  getAvailableSystemChains: getAvailableSystemChains,
 };
 
 export async function POST(req: Request) {
