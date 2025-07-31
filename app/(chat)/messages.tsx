@@ -32,7 +32,9 @@ export default function Messages({ messages }: { messages: UIMessage[] }) {
                   case "tool-transferAgent": {
                     switch (part.state) {
                       case "input-available": {
-                        if (!toolCallId.current.has(part.toolCallId)) {
+                        if (
+                          !toolCallId.current.has(`input-${part.toolCallId}`)
+                        ) {
                           toolCallId.current.add(`input-${part.toolCallId}`);
                           const input = part.input as {
                             to: string;
@@ -72,6 +74,37 @@ export default function Messages({ messages }: { messages: UIMessage[] }) {
                               key={`${message.id}-part-${String(i)}`}
                               content={output.message}
                               id={`${message.id}-part-${String(i)}`}
+                            />
+                          );
+                        }
+                      }
+                    }
+                    break;
+                  }
+                  // TODO: implement xcm transfer
+                  case "tool-teleportDotToSystemChain": {
+                    switch (part.state) {
+                      case "input-available":
+                        return;
+                      case "output-available": {
+                        if (!toolCallId.current.has(part.toolCallId)) {
+                          toolCallId.current.add(part.toolCallId);
+                          const output = part.output as {
+                            tx: {
+                              src: string;
+                              dst: string;
+                              amount: string;
+                              symbol: string;
+                              address: string;
+                            };
+                            message: string;
+                          };
+
+                          return (
+                            <MemoizedMarkdown
+                              key={`${message.id}-${part.toolCallId}-${String(i)}`}
+                              content={output.message}
+                              id={`${message.id}-${part.toolCallId}-${String(i)}`}
                             />
                           );
                         }
