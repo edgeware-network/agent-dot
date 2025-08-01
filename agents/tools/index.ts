@@ -13,5 +13,5 @@ export { transferAgent } from "@/agents/tools/transfer-agent";
 export {
   getAvailableRelayChains,
   getAvailableSystemChains,
-  teleportDotToSystemChain,
+  xcmAgent,
 } from "@/agents/tools/xcm-agent";

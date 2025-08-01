@@ -82,7 +82,7 @@ export default function Messages({ messages }: { messages: UIMessage[] }) {
                     break;
                   }
                   // TODO: implement xcm transfer
-                  case "tool-teleportDotToSystemChain": {
+                  case "tool-xcmAgent": {
                     switch (part.state) {
                       case "input-available":
                         return;

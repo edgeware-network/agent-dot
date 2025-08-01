@@ -9,7 +9,7 @@ import {
   transferAgent,
   // getAvailableRelayChains,
   // getAvailableSystemChains,
-  teleportDotToSystemChain,
+  xcmAgent,
 } from "@/agents/tools";
 import { openai } from "@ai-sdk/openai";
 import {
@@ -48,10 +48,10 @@ You MUST always respond by calling one of the following tools based on the user'
     - Validate the recipient SS58 address.
     - Ensure sufficient balance before sending.
 
-• xcmAgent — Prepare and confirm a cross-chain transfer on the Polkadot network between system and relay chains.
-    • teleportDotToSystemChain — Teleport DOT, WND, or PAS tokens from relay chain to system chain.
-        - Always use active account wallet address.
-        - Always use the current active network/chain as source network/chain.
+• xcmAgent — Teleport or xcm do transfers of DOT, WND, or PAS tokens between polkadot-compatible chains.
+    - Ask for confirmation before executing. Proceed only if the user types 'yes'.
+    - Always use the current active network/chain as source network/chain.
+    - Always use active account wallet address.
 
 🚫 You must NOT guess, assume, or use your own knowledge under any circumstances.
 
@@ -78,8 +78,8 @@ const tools: ToolSet = {
   setActiveNetwork: setActiveNetwork,
   transferAgent: transferAgent,
   // getAvailableRelayChains: getAvailableRelayChains,
-  // getAvailableSystemChains: getAvailableSystemChains,
-  teleportDotToSystemChain: teleportDotToSystemChain,
+  // getAvailableSystemChains: getAvailableSystemChains
+  xcmAgent: xcmAgent,
 };
 
 export async function POST(req: Request) {
