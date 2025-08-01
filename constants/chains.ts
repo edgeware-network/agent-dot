@@ -60,6 +60,15 @@ export const CHAINS = {
   },
 } as const;
 
+export const TOKEN_DECIMALS: Record<string, number> = {
+  DOT: 10,
+  KSM: 12,
+  WND: 12,
+  PAS: 10,
+  USDT: 6,
+  USDC: 6,
+};
+
 export const SYMBOL_TO_RELAY_CHAIN = {
   DOT: "Polkadot",
   WND: "Westend",

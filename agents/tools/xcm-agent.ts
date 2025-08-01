@@ -3,7 +3,10 @@ import {
   Parachains,
   RELAY_CHAINS,
   SYMBOL_TO_RELAY_CHAIN,
+  TOKEN_DECIMALS,
 } from "@/constants/chains";
+import { convertAmountToPlancks } from "@/lib/utils";
+import { NODES_WITH_RELAY_CHAINS_DOT_KSM } from "@paraspell/sdk";
 import { tool } from "ai";
 import z from "zod";
 
@@ -27,7 +30,7 @@ const xcmAgent = tool({
   inputSchema: z.object({
     src: z.string().describe("The source network/chain to teleport from."),
     dst: z.string().describe("The destination network/chain to teleport to."),
-    amount: z.string().describe("The amount of tokens to teleport."),
+    amount: z.number().describe("The amount of tokens to teleport."),
     symbol: z
       .enum(["DOT", "WND", "PAS"])
       .describe("The symbol of the token to teleport."),
@@ -38,8 +41,8 @@ const xcmAgent = tool({
   outputSchema: z.object({
     tx: z
       .object({
-        src: z.string(),
-        dst: z.string(),
+        src: z.enum(NODES_WITH_RELAY_CHAINS_DOT_KSM),
+        dst: z.enum(NODES_WITH_RELAY_CHAINS_DOT_KSM),
         amount: z.string(),
       })
       .optional(),
@@ -108,11 +111,11 @@ const xcmAgent = tool({
         const dstparachain = parachains[dstKey as keyof Parachains];
 
         return {
-          message: `Teleporting ${amount} ${symbol} tokens from ${srcparachain} to ${dstparachain}.`,
+          message: `Teleporting ${String(amount)} ${symbol} tokens from ${srcparachain} to ${dstparachain}.`,
           tx: {
             src: srcparachain,
             dst: dstparachain,
-            amount,
+            amount: convertAmountToPlancks(amount, TOKEN_DECIMALS[symbol]),
             symbol,
             address,
           },
@@ -138,11 +141,11 @@ const xcmAgent = tool({
         const dstrelay = RELAY_CHAINS[dstIndex];
 
         return {
-          message: `Teleporting ${amount} ${symbol} tokens from ${srcparachain} to ${dstrelay}.`,
+          message: `Teleporting ${String(amount)} ${symbol} tokens from ${srcparachain} to ${dstrelay}.`,
           tx: {
             src: srcparachain,
             dst: dstrelay,
-            amount,
+            amount: convertAmountToPlancks(amount, TOKEN_DECIMALS[symbol]),
             symbol,
             address,
           },
@@ -168,11 +171,11 @@ const xcmAgent = tool({
         const dstparachain = parachains[dstKey as keyof Parachains];
 
         return {
-          message: `Teleporting ${amount} ${symbol} tokens from ${srcrelay} to ${dstparachain}.`,
+          message: `Teleporting ${String(amount)} ${symbol} tokens from ${srcrelay} to ${dstparachain}.`,
           tx: {
             src: srcrelay,
             dst: dstparachain,
-            amount,
+            amount: convertAmountToPlancks(amount, TOKEN_DECIMALS[symbol]),
             symbol,
             address,
           },

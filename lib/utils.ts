@@ -68,3 +68,10 @@ export function isValidSS58Address(address: string): boolean {
     return false;
   }
 }
+
+export function convertAmountToPlancks(
+  amount: number,
+  decimals: number,
+): string {
+  return (BigInt(amount) * 10n ** BigInt(decimals)).toString();
+}

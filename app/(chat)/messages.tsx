@@ -2,13 +2,14 @@
 
 import { MemoizedMarkdown } from "@/components/memoized-markdown";
 import { useTransactions } from "@/hooks/use-transactions";
+import { TNodeDotKsmWithRelayChains } from "@paraspell/sdk";
 import { UIMessage } from "ai";
 import { useRef } from "react";
 
 export default function Messages({ messages }: { messages: UIMessage[] }) {
   // to prevent duplicate tool calls
   const toolCallId = useRef(new Set<string>());
-  const { sendTransaction } = useTransactions();
+  const { sendTransaction, sendXcmTransaction } = useTransactions();
   return (
     <>
       <div className="relative flex min-w-0 flex-1 flex-col gap-6 overflow-y-scroll pt-4">
@@ -81,7 +82,7 @@ export default function Messages({ messages }: { messages: UIMessage[] }) {
                     }
                     break;
                   }
-                  // TODO: implement xcm transfer
+                  // TODO: this tool runs twice how?
                   case "tool-xcmAgent": {
                     switch (part.state) {
                       case "input-available":
@@ -91,14 +92,23 @@ export default function Messages({ messages }: { messages: UIMessage[] }) {
                           toolCallId.current.add(part.toolCallId);
                           const output = part.output as {
                             tx: {
-                              src: string;
-                              dst: string;
+                              src: TNodeDotKsmWithRelayChains;
+                              dst: TNodeDotKsmWithRelayChains;
                               amount: string;
                               symbol: string;
                               address: string;
                             };
                             message: string;
                           };
+                          void (async () => {
+                            await sendXcmTransaction({
+                              from: output.tx.src,
+                              to: output.tx.dst,
+                              amount: output.tx.amount,
+                              symbol: output.tx.symbol,
+                              address: output.tx.address,
+                            });
+                          })();
 
                           return (
                             <MemoizedMarkdown

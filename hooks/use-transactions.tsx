@@ -2,6 +2,11 @@
 
 import { ExtenstionContext } from "@/providers/extension-provider";
 import { useLightClientApi } from "@/providers/light-client-provider";
+import {
+  Builder,
+  TNodeDotKsmWithRelayChains,
+  convertSs58,
+} from "@paraspell/sdk";
 import { MultiAddress } from "@polkadot-api/descriptors";
 import { use, useCallback } from "react";
 
@@ -42,5 +47,50 @@ export function useTransactions() {
     [api, selectedAccount, activeChain],
   );
 
-  return { sendTransaction };
+  const sendXcmTransaction = useCallback(
+    async ({
+      from,
+      to,
+      amount,
+      symbol,
+      address,
+    }: {
+      from: TNodeDotKsmWithRelayChains;
+      to: TNodeDotKsmWithRelayChains;
+      amount: string;
+      symbol: string;
+      address: string;
+    }): Promise<{ success: boolean; message: string }> => {
+      if (selectedAccount) {
+        try {
+          const tx = await Builder()
+            .from(from)
+            .to(to)
+            .currency({ symbol: symbol, amount: amount })
+            .address(convertSs58(address, to))
+            .build();
+          const xcm = await tx.signAndSubmit(selectedAccount.polkadotSigner);
+
+          return {
+            success: true,
+            message: `https://${activeChain.name.toLowerCase()}.subscan.io/extrinsic/${xcm.txHash}`,
+          };
+        } catch (error: unknown) {
+          const err = error as Error;
+          return {
+            success: false,
+            message: `Failed to send xcm transaction: ${err.message}`,
+          };
+        }
+      }
+
+      return {
+        success: false,
+        message: "Selected account is not available.",
+      };
+    },
+    [selectedAccount, activeChain],
+  );
+
+  return { sendTransaction, sendXcmTransaction };
 }
