@@ -60,6 +60,12 @@ export const CHAINS = {
   },
 } as const;
 
+export const SYMBOL_TO_RELAY_CHAIN = {
+  DOT: "Polkadot",
+  WND: "Westend",
+  PAS: "Paseo",
+} as const;
+
 export const RELAY_CHAINS = ["Polkadot", "Westend", "Paseo"] as const;
 
 export type Chains = typeof CHAINS;

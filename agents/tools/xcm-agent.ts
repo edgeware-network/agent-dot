@@ -1,12 +1,11 @@
-import { CHAINS, Parachains, RELAY_CHAINS } from "@/constants/chains";
+import {
+  CHAINS,
+  Parachains,
+  RELAY_CHAINS,
+  SYMBOL_TO_RELAY_CHAIN,
+} from "@/constants/chains";
 import { tool } from "ai";
 import z from "zod";
-
-const SYMBOL_TO_RELAY_CHAIN = {
-  DOT: "Polkadot",
-  WND: "Westend",
-  PAS: "Paseo",
-} as const;
 
 const getAvailableSystemChains = tool({
   name: "getAvailableSystemChains",
@@ -24,7 +23,7 @@ const getAvailableRelayChains = tool({
 
 const xcmAgent = tool({
   name: "xcmAgent",
-  description: `Teleport or xcm do transfers of DOT on ${SYMBOL_TO_RELAY_CHAIN.DOT} and its parachains/system chains ${Object.keys(CHAINS.DOT).join(", ")}, WND on ${SYMBOL_TO_RELAY_CHAIN.WND} and its parachains/system chains ${Object.keys(CHAINS.WND).join(", ")}, or PAS on ${SYMBOL_TO_RELAY_CHAIN.PAS} and its parachains/system chains ${Object.keys(CHAINS.PAS).join(", ")}. Always use active account wallet address. Always use the current active network/chain as source network/chain.`,
+  description: `Teleport or xcm do transfers of DOT on ${SYMBOL_TO_RELAY_CHAIN.DOT} and its parachains/system chains ${Object.keys(CHAINS.DOT).join(", ")}, WND on ${SYMBOL_TO_RELAY_CHAIN.WND} and its parachains/system chains ${Object.keys(CHAINS.WND).join(", ")}, or PAS on ${SYMBOL_TO_RELAY_CHAIN.PAS} and its parachains/system chains ${Object.keys(CHAINS.PAS).join(", ")}. Always get active account wallet address for address parameter. Always use the current active network/chain as source network/chain.`,
   inputSchema: z.object({
     src: z.string().describe("The source network/chain to teleport from."),
     dst: z.string().describe("The destination network/chain to teleport to."),
@@ -56,7 +55,7 @@ const xcmAgent = tool({
           message: `Teleport ${symbol} cannot be done from ${src} to ${dst}.`,
         };
       }
-      src = src.split(" Asset Hub")[1].trim();
+      src = "AssetHub";
     }
 
     // validate that src associated with `symbol`
