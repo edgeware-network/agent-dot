@@ -6,7 +6,10 @@ import {
   TOKEN_DECIMALS,
 } from "@/constants/chains";
 import { convertAmountToPlancks } from "@/lib/utils";
-import { NODES_WITH_RELAY_CHAINS_DOT_KSM } from "@paraspell/sdk";
+import {
+  NODES_WITH_RELAY_CHAINS,
+  NODES_WITH_RELAY_CHAINS_DOT_KSM,
+} from "@paraspell/sdk";
 import { tool } from "ai";
 import z from "zod";
 
@@ -189,4 +192,72 @@ const xcmAgent = tool({
   },
 });
 
-export { getAvailableRelayChains, getAvailableSystemChains, xcmAgent };
+const xcmStablecoinFromAssetHub = tool({
+  name: "xcmStablecoinFromAssetHub",
+  description:
+    "This tool is used to send or teleport stablecoins only from AssetHub to another polkadot-compatible network/chain (Hydration or Moonbeam). Always use ask for receipient wallet address to teleport to.",
+  inputSchema: z.object({
+    src: z.string().describe("The source network/chain to teleport from."),
+    dst: z.string().describe("The destination network/chain to teleport to."),
+    amount: z.number().describe("The amount of stablecoins to transfer."),
+    symbol: z
+      .enum(["USDT", "USDC"])
+      .describe("The symbol of the stablecoin to transfer."),
+    address: z.string().describe("A wallet address to teleport to."),
+  }),
+  outputSchema: z.object({
+    tx: z
+      .object({
+        src: z.enum(NODES_WITH_RELAY_CHAINS),
+        dst: z.enum(NODES_WITH_RELAY_CHAINS),
+        amount: z.string(),
+        id: z.number(),
+      })
+      .optional(),
+    message: z.string(),
+  }),
+  // eslint-disable-next-line @typescript-eslint/require-await
+  execute: async ({ src, dst, amount, symbol, address }) => {
+    if (
+      (src === "AssetHub" || src === "Polkadot Asset Hub") &&
+      dst === "Hydration"
+    ) {
+      return {
+        message: `Teleporting ${String(amount)} ${symbol} tokens from AssetHub to Moonbeam, Hydration.`,
+        tx: {
+          src: "AssetHubPolkadot",
+          dst: "Hydration",
+          amount: convertAmountToPlancks(amount, TOKEN_DECIMALS[symbol]),
+          id: 1984,
+          address,
+        },
+      };
+    }
+
+    if (
+      (src === "AssetHub" || src === "Polkadot Asset Hub") &&
+      dst === "Moonbeam"
+    ) {
+      return {
+        message: `Teleporting ${String(amount)} ${symbol} tokens from AssetHub to Moonbeam.`,
+        tx: {
+          src: "AssetHubPolkadot",
+          dst: "Moonbeam",
+          amount: convertAmountToPlancks(amount, TOKEN_DECIMALS[symbol]),
+          id: 1984,
+          address,
+        },
+      };
+    }
+    return {
+      message: `Invalid transfer from ${src} to ${dst} for stablecoin ${symbol}. Use src: AssetHub and dst: Hydration or Moonbeam.`,
+    };
+  },
+});
+
+export {
+  getAvailableRelayChains,
+  getAvailableSystemChains,
+  xcmAgent,
+  xcmStablecoinFromAssetHub,
+};

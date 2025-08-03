@@ -2,14 +2,19 @@
 
 import { MemoizedMarkdown } from "@/components/memoized-markdown";
 import { useTransactions } from "@/hooks/use-transactions";
-import { TNodeDotKsmWithRelayChains } from "@paraspell/sdk";
+import {
+  TCurrency,
+  TNodeDotKsmWithRelayChains,
+  TNodeWithRelayChains,
+} from "@paraspell/sdk";
 import { UIMessage } from "ai";
 import { useRef } from "react";
 
 export default function Messages({ messages }: { messages: UIMessage[] }) {
   // to prevent duplicate tool calls
   const toolCallId = useRef(new Set<string>());
-  const { sendTransaction, sendXcmTransaction } = useTransactions();
+  const { sendTransaction, sendXcmTransaction, sendXcmStablecoinTransaction } =
+    useTransactions();
   return (
     <>
       <div className="relative flex min-w-0 flex-1 flex-col gap-6 overflow-y-scroll pt-4">
@@ -100,12 +105,54 @@ export default function Messages({ messages }: { messages: UIMessage[] }) {
                             };
                             message: string;
                           };
+
                           void (async () => {
                             await sendXcmTransaction({
                               from: output.tx.src,
                               to: output.tx.dst,
                               amount: output.tx.amount,
                               symbol: output.tx.symbol,
+                              address: output.tx.address,
+                            });
+                          })();
+
+                          return (
+                            <MemoizedMarkdown
+                              key={`${message.id}-${part.toolCallId}-${String(i)}`}
+                              content={output.message}
+                              id={`${message.id}-${part.toolCallId}-${String(i)}`}
+                            />
+                          );
+                        }
+                      }
+                    }
+                    break;
+                  }
+                  // TODO: this tool runs twice how?
+                  case "tool-xcmStablecoinFromAssetHub": {
+                    switch (part.state) {
+                      case "input-available":
+                        return;
+                      case "output-available": {
+                        if (!toolCallId.current.has(part.toolCallId)) {
+                          toolCallId.current.add(part.toolCallId);
+                          const output = part.output as {
+                            tx: {
+                              src: TNodeDotKsmWithRelayChains;
+                              dst: TNodeWithRelayChains;
+                              amount: string;
+                              id: string;
+                              address: string;
+                            };
+                            message: string;
+                          };
+
+                          void (async () => {
+                            await sendXcmStablecoinTransaction({
+                              from: output.tx.src,
+                              to: output.tx.dst,
+                              amount: output.tx.amount,
+                              id: output.tx.id as TCurrency,
                               address: output.tx.address,
                             });
                           })();

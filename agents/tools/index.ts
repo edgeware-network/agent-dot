@@ -14,4 +14,5 @@ export {
   getAvailableRelayChains,
   getAvailableSystemChains,
   xcmAgent,
+  xcmStablecoinFromAssetHub,
 } from "@/agents/tools/xcm-agent";

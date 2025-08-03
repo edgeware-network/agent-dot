@@ -10,6 +10,7 @@ import {
   // getAvailableRelayChains,
   // getAvailableSystemChains,
   xcmAgent,
+  xcmStablecoinFromAssetHub,
 } from "@/agents/tools";
 import { openai } from "@ai-sdk/openai";
 import {
@@ -52,6 +53,10 @@ You MUST always respond by calling one of the following tools based on the user'
     - Ask for confirmation before executing. Proceed only if the user types 'yes'.
     - Always use the current active network/chain as source network/chain.
     - Always use active account wallet address.
+    • xcmStablecoinFromAssetHub — Teleport or xcm do transfers of USDT or USDC stablecoins between polkadot-compatible chains.
+      - Ask for confirmation before executing. Proceed only if the user types 'yes'.
+      - Always get the recipient wallet address from the user.
+      - Do the above 2 steps for each stablecoin only.
 
 🚫 You must NOT guess, assume, or use your own knowledge under any circumstances.
 
@@ -80,6 +85,7 @@ const tools: ToolSet = {
   // getAvailableRelayChains: getAvailableRelayChains,
   // getAvailableSystemChains: getAvailableSystemChains
   xcmAgent: xcmAgent,
+  xcmStablecoinFromAssetHub: xcmStablecoinFromAssetHub,
 };
 
 export async function POST(req: Request) {
