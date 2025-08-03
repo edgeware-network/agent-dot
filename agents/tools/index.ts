@@ -16,3 +16,9 @@ export {
   xcmAgent,
   xcmStablecoinFromAssetHub,
 } from "@/agents/tools/xcm-agent";
+
+export {
+  bondAgent,
+  nominateAgent,
+  unbondAgent,
+} from "@/agents/tools/staking-agent";

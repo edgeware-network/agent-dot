@@ -1,12 +1,15 @@
 import {
+  bondAgent,
   getActiveAccount,
   getActiveNetwork,
   getAvailableNetworks,
   getBalances,
   getConnectedAccounts,
+  nominateAgent,
   setActiveAccount,
   setActiveNetwork,
   transferAgent,
+  unbondAgent,
   // getAvailableRelayChains,
   // getAvailableSystemChains,
   xcmAgent,
@@ -58,6 +61,11 @@ You MUST always respond by calling one of the following tools based on the user'
       - Always get the recipient wallet address from the user.
       - Do the above 2 steps for each stablecoin only.
 
+• stakingAgent — handles all staking operations for polkadot-sdk chains.
+    • bondAgent — Bond tokens for staking on a Proof-of-Stake network within the Polkadot or Kusama or Westend or Paseo ecosystem.
+    • nominateAgent — Nominate a list of validators to stake tokens with on a polkadot-sdk network.
+    • unbondAgent — Unbond a specific amount of tokens that were previously bonded for staking.
+
 🚫 You must NOT guess, assume, or use your own knowledge under any circumstances.
 
 ✅ You MUST use the appropriate tool for every supported request to fetch real-time data or verified answers.
@@ -86,6 +94,9 @@ const tools: ToolSet = {
   // getAvailableSystemChains: getAvailableSystemChains
   xcmAgent: xcmAgent,
   xcmStablecoinFromAssetHub: xcmStablecoinFromAssetHub,
+  bondAgent: bondAgent,
+  nominateAgent: nominateAgent,
+  unbondAgent: unbondAgent,
 };
 
 export async function POST(req: Request) {
