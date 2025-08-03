@@ -69,10 +69,32 @@ export const TOKEN_DECIMALS: Record<string, number> = {
   USDC: 6,
 };
 
+export const MAX_NOMINATIONS: Record<string, number> = {
+  DOT: 16,
+  KSM: 24,
+  WND: 16,
+  PAS: 16,
+};
+
+export const UNBONDING_PERIOD_DAYS_MAP: Record<string, number> = {
+  DOT: 28,
+  KSM: 7,
+  WND: 7,
+  PAS: 28,
+};
+
+export const MIN_POOL_BOND_AMOUNT: Record<string, number> = {
+  DOT: 1,
+  KSM: 0.001,
+  WND: 0.001,
+  PAS: 1,
+};
+
 export const SYMBOL_TO_RELAY_CHAIN = {
   DOT: "Polkadot",
   WND: "Westend",
   PAS: "Paseo",
+  KSM: "Kusama",
 } as const;
 
 export const RELAY_CHAINS = ["Polkadot", "Westend", "Paseo"] as const;
