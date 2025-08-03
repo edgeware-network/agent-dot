@@ -141,7 +141,7 @@ export default function Messages({ messages }: { messages: UIMessage[] }) {
                               src: TNodeDotKsmWithRelayChains;
                               dst: TNodeWithRelayChains;
                               amount: string;
-                              id: string;
+                              id: TCurrency;
                               address: string;
                             };
                             message: string;
@@ -152,7 +152,7 @@ export default function Messages({ messages }: { messages: UIMessage[] }) {
                               from: output.tx.src,
                               to: output.tx.dst,
                               amount: output.tx.amount,
-                              id: output.tx.id as TCurrency,
+                              id: output.tx.id,
                               address: output.tx.address,
                             });
                           })();
