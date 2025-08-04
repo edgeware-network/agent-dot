@@ -22,3 +22,9 @@ export {
   nominateAgent,
   unbondAgent,
 } from "@/agents/tools/staking-agent";
+
+export {
+  joinNominationPoolsAgent,
+  bondExtraNominationPoolsAgent,
+  unbondFromNominationPoolsAgent,
+} from "@/agents/tools/nominationPools-agent";
