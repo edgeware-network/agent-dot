@@ -1,15 +1,18 @@
 import {
   bondAgent,
+  bondExtraNominationPoolsAgent,
   getActiveAccount,
   getActiveNetwork,
   getAvailableNetworks,
   getBalances,
   getConnectedAccounts,
+  joinNominationPoolsAgent,
   nominateAgent,
   setActiveAccount,
   setActiveNetwork,
   transferAgent,
   unbondAgent,
+  unbondFromNominationPoolsAgent,
   // getAvailableRelayChains,
   // getAvailableSystemChains,
   xcmAgent,
@@ -66,12 +69,18 @@ You MUST always respond by calling one of the following tools based on the user'
     • nominateAgent — Nominate a list of validators to stake tokens with on a polkadot-sdk network.
     • unbondAgent — Unbond a specific amount of tokens that were previously bonded for staking.
 
+• nominationPoolsAgent — handles operations related to nomination pools:
+   • joinNominationPoolAgent — Join an existing nomination pools on a network within the Polkadot ecosystem by bonding a specified amount of tokens.
+   • bondExtraNominationPoolAgent — Add more tokens to your existing bonded stake in a nomination pool. You can either bond additional tokens from your account's free balance or re-stake your accumulated rewards.
+   • unbondFromNominationPoolAgent — Initiate the unbonding process for a specified amount of tokens from a nomination pool you are currently a member of.
+
+
 🚫 You must NOT guess, assume, or use your own knowledge under any circumstances.
 
 ✅ You MUST use the appropriate tool for every supported request to fetch real-time data or verified answers.
 
 ❌ If the user asks about unsupported topics, reply with:
-"I can only help with polkadot staking, transfers, nominations, validator info, identity, and verified polkadot resources."
+"I can only help with polkadot staking, transfers, nomination Pools, validator info, identity, and verified polkadot resources."
 
 👋 If the user greets you (e.g., “hi”, “hello”, “gm”), respond warmly and introduce yourself.
 
@@ -97,6 +106,9 @@ const tools: ToolSet = {
   bondAgent: bondAgent,
   nominateAgent: nominateAgent,
   unbondAgent: unbondAgent,
+  joinNominationPoolsAgent: joinNominationPoolsAgent,
+  bondExtraNominationPoolsAgent: bondExtraNominationPoolsAgent,
+  unbondFromNominationPoolsAgent: unbondFromNominationPoolsAgent,
 };
 
 export async function POST(req: Request) {
