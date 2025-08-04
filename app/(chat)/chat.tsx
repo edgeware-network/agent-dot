@@ -11,49 +11,26 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { ChatSchema, chatSchema } from "@/db/schema";
-import { useSyncedRef } from "@/hooks/use-sync-ref";
+import { useRefObject } from "@/hooks/use-ref-object";
 import { onChatToolCall } from "@/lib/ai";
-import { AvailableApis, ChainConfig } from "@/papi-config";
-import { ExtenstionContext } from "@/providers/extension-provider";
-import { useLightClientApi } from "@/providers/light-client-provider";
 import { useChat } from "@ai-sdk/react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   DefaultChatTransport,
   lastAssistantMessageIsCompleteWithToolCalls,
 } from "ai";
-import {
-  InjectedExtension,
-  InjectedPolkadotAccount,
-} from "polkadot-api/pjs-signer";
-import { use } from "react";
 import { useForm } from "react-hook-form";
 
 export default function Chat() {
-  const { api, activeChain, setActiveChain } = useLightClientApi();
   const {
-    connectedAccounts,
-    selectedAccount,
-    setSelectedAccount,
-    selectedExtensions,
-  } = use(ExtenstionContext);
-
-  // refs to pass down to useChat
-  const activeChainRef = useSyncedRef<ChainConfig>(activeChain);
-  const setActiveChainRef = useSyncedRef<typeof setActiveChain>(setActiveChain);
-  const apiRef = useSyncedRef<AvailableApis | null>(api);
-  const connectedAccountsRef =
-    useSyncedRef<InjectedPolkadotAccount[]>(connectedAccounts);
-  const selectedAccountRef = useSyncedRef<
-    | (InjectedPolkadotAccount & {
-        extension: InjectedExtension;
-      })
-    | null
-  >(selectedAccount);
-  const setSelectedAccountRef =
-    useSyncedRef<typeof setSelectedAccount>(setSelectedAccount);
-  const selectedExtensionsRef =
-    useSyncedRef<InjectedExtension[]>(selectedExtensions);
+    activeChainRef,
+    apiRef,
+    connectedAccountsRef,
+    selectedAccountRef,
+    selectedExtensionsRef,
+    setActiveChainRef,
+    setSelectedAccountRef,
+  } = useRefObject();
 
   const form = useForm<ChatSchema>({
     resolver: zodResolver(chatSchema),
