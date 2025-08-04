@@ -1,4 +1,3 @@
-import { ChainBlockInfo } from "@/components/account";
 import {
   geist,
   manrope,
@@ -29,10 +28,7 @@ export default function RootLayout({
       <body
         className={`${geist.variable} ${manrope.variable} ${montserrat.variable} ${outfit.variable} ${poppins.variable} ${unbounded.variable} ${workSans.variable} antialiased`}
       >
-        <Providers>
-          {children}
-          <ChainBlockInfo />
-        </Providers>
+        <Providers>{children}</Providers>
         <Toaster
           position="bottom-right"
           richColors

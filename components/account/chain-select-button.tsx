@@ -31,7 +31,7 @@ export default function ChainSelectButton() {
       if (connectionStatus?.type === WsEvent.ERROR) {
         return (
           <Button variant="ghost" size="icon">
-            <TbAlertSquareRoundedFilled className="h-4 w-4 text-red-500" />
+            <TbAlertSquareRoundedFilled className="size-9 text-red-500" />
           </Button>
         );
       }
@@ -42,10 +42,10 @@ export default function ChainSelectButton() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon">
-                  <BiLoaderCircle className="text-primary h-4 w-4 animate-spin" />
+                  <BiLoaderCircle className="text-primary size-9 animate-spin" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent className="text-foreground font-outfit text-xs">
+              <TooltipContent className="text-foreground font-outfit bg-[#141414] text-xs">
                 Connecting to the network...
               </TooltipContent>
             </Tooltip>
@@ -54,7 +54,7 @@ export default function ChainSelectButton() {
       }
 
       return (
-        <Button className="cursor-pointer p-1" variant="ghost" size="icon">
+        <Button className="size-9 cursor-pointer" variant="ghost" size="icon">
           {activeChain.icon}
         </Button>
       );
