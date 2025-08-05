@@ -60,7 +60,7 @@ function PurePromptInputForm({ sendMessage }: PromptInputFormProps) {
       <Form {...form}>
         <form
           onSubmit={(e) => void form.handleSubmit(onSubmit)(e)}
-          className="bg-background mx-auto flex w-full max-w-[40rem] flex-col items-stretch justify-start gap-2 px-4 pb-4 text-left shadow-md md:max-w-3xl md:pb-4"
+          className="bg-background mx-auto flex w-full flex-col items-stretch justify-start gap-2 px-4 pb-4 text-left shadow-md md:max-w-3xl md:pb-4"
         >
           <FormField
             control={form.control}

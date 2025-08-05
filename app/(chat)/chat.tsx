@@ -1,6 +1,6 @@
 "use client";
 import ChatHeader from "@/app/(chat)/chat-header";
-import Messages from "@/app/(chat)/messages";
+import { Messages } from "@/app/(chat)/messages";
 import { PromptInputForm } from "@/app/(chat)/prompt-input-form";
 import { useRefObject } from "@/hooks/use-ref-object";
 import { onChatToolCall } from "@/lib/ai";
@@ -21,7 +21,7 @@ export default function Chat() {
     setSelectedAccountRef,
   } = useRefObject();
 
-  const { messages, sendMessage, addToolResult } = useChat({
+  const { messages, sendMessage, addToolResult, status } = useChat({
     sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
     transport: new DefaultChatTransport({
       api: "/api/chat",
@@ -46,7 +46,7 @@ export default function Chat() {
     <>
       <div className="bg-background flex h-dvh min-w-0 flex-col">
         <ChatHeader />
-        <Messages messages={messages} />
+        <Messages messages={messages} status={status} />
         <PromptInputForm sendMessage={sendMessage} />
       </div>
     </>

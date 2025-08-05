@@ -75,3 +75,7 @@ export function convertAmountToPlancks(
 ): string {
   return (BigInt(amount) * 10n ** BigInt(decimals)).toString();
 }
+
+export function sanitizeText(text: string) {
+  return text.replace("<has_function_call>", "");
+}
