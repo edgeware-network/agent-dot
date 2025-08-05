@@ -22,9 +22,7 @@ export function CodeBlock({
       <div className="not-prose flex flex-col">
         <pre
           {...props}
-          className={
-            "w-full overflow-x-auto rounded-xl border border-zinc-200 p-4 text-sm text-zinc-900 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50"
-          }
+          className="w-full overflow-x-auto rounded-lg bg-zinc-800 p-4 font-mono text-sm text-zinc-100 shadow-inner ring-1 ring-zinc-700"
         >
           <code className="break-words whitespace-pre-wrap">{children}</code>
         </pre>

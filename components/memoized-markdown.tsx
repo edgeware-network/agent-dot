@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { CodeBlock } from "@/components/code-block";
 import { marked } from "marked";
 import Link from "next/link";
@@ -8,8 +7,7 @@ import ReactMarkdown, { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 const components: Partial<Components> = {
-  // @ts-expect-error
-  code: CodeBlock,
+  code: CodeBlock as Components["code"],
   pre: ({ children }) => <>{children}</>,
   ol: ({ node, children, ...props }) => {
     return (
@@ -27,7 +25,7 @@ const components: Partial<Components> = {
   },
   ul: ({ node, children, ...props }) => {
     return (
-      <ul className="ml-4 list-outside list-decimal" {...props}>
+      <ul className="ml-4 list-outside list-disc" {...props}>
         {children}
       </ul>
     );
@@ -41,7 +39,7 @@ const components: Partial<Components> = {
   },
   a: ({ node, children, ...props }) => {
     return (
-      // @ts-expect-error
+      // @ts-expect-error next/link href is required
       <Link
         className="text-blue-500 hover:underline"
         target="_blank"
@@ -93,6 +91,9 @@ const components: Partial<Components> = {
         {children}
       </h6>
     );
+  },
+  p: ({ node, children, ...props }) => {
+    return <p {...props}>{children}</p>;
   },
 };
 
