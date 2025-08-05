@@ -5,61 +5,44 @@ import z from "zod";
 export const transferAgent = tool({
   name: "transferAgent",
   description:
-    "Prepare and confirm a transfer of tokens on the Polkadot network. Do not execute the transfer unless the user explicitly types 'yes' to confirm. First ask for confirmation after showing the details. This agent is used to send DOT, WND, or PAS tokens to another polkadot-compatible wallet address. Always use active account wallet address. Always use active network/chain.",
+    "Prepare and confirm a transfer of tokens on the Polkadot network.",
   inputSchema: z.object({
     to: z.string().describe("A SS58-encoded wallet address to transfer to."),
+    token: z.string().describe("The symbol of the token to transfer."),
     amount: z
-      .string()
+      .number()
       .describe("The amount of tokens to transfer. Must be a positive number."),
-    confirm: z.enum(["yes", "no"]).optional(),
   }),
   outputSchema: z.object({
-    success: z.boolean(),
     tx: z
       .object({
         to: z.string(),
-        amount: z.string(),
+        amount: z.number(),
       })
       .optional(),
     message: z.string().optional(),
   }),
   // eslint-disable-next-line @typescript-eslint/require-await
-  execute: async ({ to, amount, confirm }) => {
-    if (confirm === "yes") {
-      try {
-        if (isValidSS58Address(to)) {
-          return {
-            success: true,
-            tx: {
-              to,
-              amount,
-            },
-          };
-        } else {
-          return {
-            success: false,
-            message: "The provided address is not valid SS58 address.",
-          };
-        }
-      } catch (error: unknown) {
-        const err = error as Error;
+  execute: async ({ to, amount, token }) => {
+    try {
+      if (isValidSS58Address(to)) {
         return {
-          success: false,
-          message: `Failed to prepare transfer: ${err.message}`,
+          tx: {
+            to,
+            amount,
+          },
+          message: `Transfer of ${amount.toString()} ${token} tokens to ${to} has been prepared. Sign and submit the transaction to confirm the transfer.`,
+        };
+      } else {
+        return {
+          message: "The provided address is not valid SS58 address.",
         };
       }
-    }
-
-    if (confirm === "no") {
+    } catch (error: unknown) {
+      const err = error as Error;
       return {
-        success: false,
-        message: "Transfer cancelled by user.",
+        message: `Failed to prepare transfer: ${err.message}`,
       };
     }
-
-    return {
-      success: false,
-      message: `You are about to transfer ${amount} DOT to ${to}. Are you sure? Type 'yes' to confirm.`,
-    };
   },
 });

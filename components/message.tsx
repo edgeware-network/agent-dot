@@ -1,11 +1,14 @@
 "use client";
 
 import { MemoizedMarkdown } from "@/components/memoized-markdown";
+import { useTransactions } from "@/hooks/use-transactions";
 import { cn, sanitizeText } from "@/lib/utils";
+import { Transaction } from "@/types";
+import { UseChatHelpers } from "@ai-sdk/react";
 import { UIMessage } from "ai";
 import { deepEqual } from "fast-equals";
 import { AnimatePresence, motion } from "framer-motion";
-import { memo } from "react";
+import { memo, useRef } from "react";
 import { PulseLoader, SyncLoader } from "react-spinners";
 
 function PurePreviewMessage({
@@ -13,17 +16,23 @@ function PurePreviewMessage({
   isStreaming,
   isLast,
   requiresScrollToBottom,
+  sendMessage,
 }: {
   message: UIMessage;
   isStreaming: boolean;
   isLast: boolean;
   requiresScrollToBottom: boolean;
+  sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
 }) {
   const hasContent = message.parts.some(
     (part) => part.type === "text" && part.text.trim().length > 0,
   );
   const isLoading =
     message.role === "assistant" && isLast && (isStreaming || !hasContent);
+
+  const handleToolCallId = useRef(new Set<string>());
+  const { sendTransaction } = useTransactions();
+
   return (
     <AnimatePresence>
       <motion.div
@@ -33,7 +42,7 @@ function PurePreviewMessage({
         animate={{ y: 0, opacity: 1 }}
         data-role={message.role}
       >
-        <div className="font-outfit my-2 flex w-full gap-4 text-base shadow-sm group-data-[role=user]/message:ml-auto group-data-[role=user]/message:w-fit group-data-[role=user]/message:max-w-2xl">
+        <div className="font-outfit my-2 flex w-full gap-4 text-base shadow-sm group-data-[role=user]/message:ml-auto group-data-[role=user]/message:w-[70%] group-data-[role=user]/message:max-w-2xl sm:group-data-[role=user]/message:w-fit">
           <div
             className={cn("flex w-full flex-col gap-4", {
               "min-h-96":
@@ -76,22 +85,24 @@ function PurePreviewMessage({
                     );
                   }
                   //TODO: add other tools here!
-                  if (type === "tool-transferAgent") {
-                    if (part.state === "input-available") {
-                      const input = part.input;
-                      return (
-                        <div key={part.toolCallId}>
-                          {JSON.stringify(input, null, 2)}
-                        </div>
-                      );
-                    }
-                    if (part.state === "output-available") {
-                      const output = part.output;
-                      return (
-                        <div key={part.toolCallId}>
-                          {JSON.stringify(output, null, 2)}
-                        </div>
-                      );
+                  if (
+                    type === "tool-transferAgent" &&
+                    !handleToolCallId.current.has(part.toolCallId)
+                  ) {
+                    handleToolCallId.current.add(part.toolCallId);
+                    const { state, toolCallId } = part;
+
+                    if (state === "output-available") {
+                      const { tx } = part.output as {
+                        tx: Transaction;
+                      };
+
+                      void sendTransaction({
+                        ...tx,
+                        sendMessage,
+                      });
+
+                      return <div key={toolCallId}></div>;
                     }
                   }
                   if (type === "tool-xcmAgent") {
@@ -150,6 +161,7 @@ export const PreviewMessage = memo(
     if (prevProps.isLast !== nextProps.isLast) return false;
     if (!deepEqual(prevProps.message.parts, nextProps.message.parts))
       return false;
+    if (!deepEqual(prevProps.sendMessage, nextProps.sendMessage)) return false;
 
     return false;
   },

@@ -22,3 +22,8 @@ export type SetSelectedAccountRef = RefObject<
   (account: InjectedPolkadotAccount, extension: InjectedExtension) => void
 >;
 export type ChainConfigRef = RefObject<ChainConfig[]>;
+
+export interface Transaction {
+  to: string;
+  amount: number;
+}

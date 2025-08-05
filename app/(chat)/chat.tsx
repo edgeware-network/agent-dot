@@ -46,7 +46,11 @@ export default function Chat() {
     <>
       <div className="bg-background flex h-dvh min-w-0 flex-col">
         <ChatHeader />
-        <Messages messages={messages} status={status} />
+        <Messages
+          messages={messages}
+          status={status}
+          sendMessage={sendMessage}
+        />
         <PromptInputForm sendMessage={sendMessage} status={status} />
       </div>
     </>

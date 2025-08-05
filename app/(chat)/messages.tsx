@@ -12,8 +12,9 @@ import { memo } from "react";
 interface MessagesProps {
   messages: UIMessage[];
   status: UseChatHelpers<UIMessage>["status"];
+  sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
 }
-function PureMessages({ messages, status }: MessagesProps) {
+function PureMessages({ messages, status, sendMessage }: MessagesProps) {
   const {
     containerRef: messagesContainerRef,
     endRef: messagesEndRef,
@@ -40,6 +41,7 @@ function PureMessages({ messages, status }: MessagesProps) {
             requiresScrollToBottom={
               index === messages.length - 1 && hasSentMessage
             }
+            sendMessage={sendMessage}
           />
         ))}
         {status === "submitted" &&
@@ -61,6 +63,7 @@ export const Messages = memo(PureMessages, (prevProps, nextProps) => {
   if (prevProps.status !== nextProps.status) return false;
   if (prevProps.messages.length !== nextProps.messages.length) return false;
   if (!deepEqual(prevProps.messages, nextProps.messages)) return false;
+  if (!deepEqual(prevProps.sendMessage, nextProps.sendMessage)) return false;
 
   return false;
 });

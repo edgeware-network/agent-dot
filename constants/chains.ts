@@ -60,6 +60,15 @@ export const CHAINS = {
   },
 } as const;
 
+export const TOKENS = {
+  DOT: "DOT",
+  KSM: "KSM",
+  WND: "WND",
+  PAS: "PAS",
+  USDT: "USDT",
+  USDC: "USDC",
+} as const;
+
 export const TOKEN_DECIMALS: Record<string, number> = {
   DOT: 10,
   KSM: 12,
