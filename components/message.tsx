@@ -12,10 +12,12 @@ function PurePreviewMessage({
   message,
   isStreaming,
   isLast,
+  requiresScrollToBottom,
 }: {
   message: UIMessage;
   isStreaming: boolean;
   isLast: boolean;
+  requiresScrollToBottom: boolean;
 }) {
   const hasContent = message.parts.some(
     (part) => part.type === "text" && part.text.trim().length > 0,
@@ -33,102 +35,103 @@ function PurePreviewMessage({
       >
         <div className="font-outfit my-2 flex w-full gap-4 text-base shadow-sm group-data-[role=user]/message:ml-auto group-data-[role=user]/message:w-fit group-data-[role=user]/message:max-w-2xl">
           <div
-            className={cn(
-              "flex w-full flex-col gap-4",
-              {
-                "min-h-96": message.role === "assistant" && false,
-              },
-              {
-                "rounded-xl bg-[#bebebe] px-3 py-2 text-[#191919]":
-                  message.role === "assistant" && hasContent,
-              },
-            )}
+            className={cn("flex w-full flex-col gap-4", {
+              "min-h-96":
+                message.role === "assistant" && requiresScrollToBottom,
+            })}
           >
             {isLoading && !hasContent ? (
               <div className="flex items-center gap-2">
                 <SyncLoader color="#bebebe" size={6} />
               </div>
             ) : (
-              message.parts.map((part, index) => {
-                const { type } = part;
-                const key = `message-${message.id}-part-${String(index)}`;
+              <div
+                className={cn("flex flex-col gap-4", {
+                  "rounded-xl bg-[#bebebe] px-3 py-2 text-[#202020]":
+                    message.role === "assistant" && hasContent,
+                })}
+              >
+                {message.parts.map((part, index) => {
+                  const { type } = part;
+                  const key = `message-${message.id}-part-${String(index)}`;
 
-                if (type === "text") {
-                  return (
-                    <div
-                      data-testid="message-content"
-                      className={cn("flex flex-col gap-4", {
-                        "rounded-2xl rounded-br-none bg-[#202020] px-3 py-2 text-[#bebebe]":
-                          message.role === "user",
-                      })}
-                      key={key}
-                    >
-                      {part.text.trim() && (
-                        <MemoizedMarkdown
-                          id={message.id}
-                          key={key}
-                          content={sanitizeText(part.text)}
-                        />
-                      )}
-                    </div>
-                  );
-                }
-                //TODO: add other tools here!
-                if (type === "tool-transferAgent") {
-                  if (part.state === "input-available") {
-                    const input = part.input;
+                  if (type === "text") {
                     return (
-                      <div key={part.toolCallId}>
-                        {JSON.stringify(input, null, 2)}
+                      <div
+                        data-testid="message-content"
+                        className={cn("flex flex-col gap-4", {
+                          "rounded-2xl rounded-br-none bg-[#202020] px-3 py-2 text-[#bebebe]":
+                            message.role === "user",
+                        })}
+                        key={key}
+                      >
+                        {part.text.trim() && (
+                          <MemoizedMarkdown
+                            id={message.id}
+                            key={key}
+                            content={sanitizeText(part.text)}
+                          />
+                        )}
                       </div>
                     );
                   }
-                  if (part.state === "output-available") {
-                    const output = part.output;
-                    return (
-                      <div key={part.toolCallId}>
-                        {JSON.stringify(output, null, 2)}
-                      </div>
-                    );
+                  //TODO: add other tools here!
+                  if (type === "tool-transferAgent") {
+                    if (part.state === "input-available") {
+                      const input = part.input;
+                      return (
+                        <div key={part.toolCallId}>
+                          {JSON.stringify(input, null, 2)}
+                        </div>
+                      );
+                    }
+                    if (part.state === "output-available") {
+                      const output = part.output;
+                      return (
+                        <div key={part.toolCallId}>
+                          {JSON.stringify(output, null, 2)}
+                        </div>
+                      );
+                    }
                   }
-                }
-                if (type === "tool-xcmAgent") {
-                  if (part.state === "input-available") {
-                    const input = part.input;
-                    return (
-                      <div key={part.toolCallId}>
-                        {JSON.stringify(input, null, 2)}
-                      </div>
-                    );
+                  if (type === "tool-xcmAgent") {
+                    if (part.state === "input-available") {
+                      const input = part.input;
+                      return (
+                        <div key={part.toolCallId}>
+                          {JSON.stringify(input, null, 2)}
+                        </div>
+                      );
+                    }
+                    if (part.state === "output-available") {
+                      const output = part.output;
+                      return (
+                        <div key={part.toolCallId}>
+                          {JSON.stringify(output, null, 2)}
+                        </div>
+                      );
+                    }
                   }
-                  if (part.state === "output-available") {
-                    const output = part.output;
-                    return (
-                      <div key={part.toolCallId}>
-                        {JSON.stringify(output, null, 2)}
-                      </div>
-                    );
+                  if (type === "tool-xcmStablecoinFromAssetHub") {
+                    if (part.state === "input-available") {
+                      const input = part.input;
+                      return (
+                        <div key={part.toolCallId}>
+                          {JSON.stringify(input, null, 2)}
+                        </div>
+                      );
+                    }
+                    if (part.state === "output-available") {
+                      const output = part.output;
+                      return (
+                        <div key={part.toolCallId}>
+                          {JSON.stringify(output, null, 2)}
+                        </div>
+                      );
+                    }
                   }
-                }
-                if (type === "tool-xcmStablecoinFromAssetHub") {
-                  if (part.state === "input-available") {
-                    const input = part.input;
-                    return (
-                      <div key={part.toolCallId}>
-                        {JSON.stringify(input, null, 2)}
-                      </div>
-                    );
-                  }
-                  if (part.state === "output-available") {
-                    const output = part.output;
-                    return (
-                      <div key={part.toolCallId}>
-                        {JSON.stringify(output, null, 2)}
-                      </div>
-                    );
-                  }
-                }
-              })
+                })}
+              </div>
             )}
           </div>
         </div>
@@ -142,6 +145,8 @@ export const PreviewMessage = memo(
   (prevProps, nextProps) => {
     if (prevProps.message.id !== nextProps.message.id) return false;
     if (prevProps.isStreaming !== nextProps.isStreaming) return false;
+    if (prevProps.requiresScrollToBottom !== nextProps.requiresScrollToBottom)
+      return false;
     if (prevProps.isLast !== nextProps.isLast) return false;
     if (!deepEqual(prevProps.message.parts, nextProps.message.parts))
       return false;

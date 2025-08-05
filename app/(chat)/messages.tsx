@@ -2,9 +2,11 @@
 
 import { Greeting } from "@/components/greeting";
 import { PreviewMessage, ThinkingMessage } from "@/components/message";
+import { useMessages } from "@/hooks/use-messages";
 import { UseChatHelpers } from "@ai-sdk/react";
 import { UIMessage } from "ai";
 import { deepEqual } from "fast-equals";
+import { motion } from "framer-motion";
 import { memo } from "react";
 
 interface MessagesProps {
@@ -12,8 +14,21 @@ interface MessagesProps {
   status: UseChatHelpers<UIMessage>["status"];
 }
 function PureMessages({ messages, status }: MessagesProps) {
+  const {
+    containerRef: messagesContainerRef,
+    endRef: messagesEndRef,
+    onViewportEnter,
+    onViewportLeave,
+    hasSentMessage,
+  } = useMessages({
+    status,
+  });
+
   return (
-    <div className="relative flex min-w-0 flex-1 flex-col gap-6 overflow-y-scroll pt-4">
+    <div
+      ref={messagesContainerRef}
+      className="relative flex min-w-0 flex-1 flex-col gap-6 overflow-y-scroll pt-4"
+    >
       {messages.length === 0 && <Greeting />}
       <div className="mx-auto w-full max-w-3xl px-4 text-pretty wrap-break-word">
         {messages.map((message, index) => (
@@ -22,11 +37,21 @@ function PureMessages({ messages, status }: MessagesProps) {
             message={message}
             isStreaming={status === "streaming"}
             isLast={index === messages.length - 1}
+            requiresScrollToBottom={
+              index === messages.length - 1 && hasSentMessage
+            }
           />
         ))}
         {status === "submitted" &&
           messages.length > 0 &&
           messages[messages.length - 1].role === "user" && <ThinkingMessage />}
+
+        <motion.div
+          ref={messagesEndRef}
+          className="min-h-[24px] min-w-[24px] shrink-0"
+          onViewportLeave={onViewportLeave}
+          onViewportEnter={onViewportEnter}
+        />
       </div>
     </div>
   );

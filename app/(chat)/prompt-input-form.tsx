@@ -11,16 +11,20 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { ChatSchema, chatSchema } from "@/db/schema";
+import { useScrollToBottom } from "@/hooks/use-scroll-to-bottom";
 import { UIMessage, UseChatHelpers } from "@ai-sdk/react";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { AnimatePresence, motion } from "framer-motion";
 import { memo, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
+import { RiArrowDownDoubleLine } from "react-icons/ri";
 
 interface PromptInputFormProps {
   sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
+  status: UseChatHelpers<UIMessage>["status"];
 }
 
-function PurePromptInputForm({ sendMessage }: PromptInputFormProps) {
+function PurePromptInputForm({ sendMessage, status }: PromptInputFormProps) {
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const form = useForm<ChatSchema>({
     resolver: zodResolver(chatSchema),
@@ -28,6 +32,13 @@ function PurePromptInputForm({ sendMessage }: PromptInputFormProps) {
       prompt: "",
     },
   });
+  const { isAtBottom, scrollToBottom } = useScrollToBottom();
+
+  useEffect(() => {
+    if (status === "submitted") {
+      scrollToBottom();
+    }
+  }, [status, scrollToBottom]);
 
   useEffect(() => {
     if (textAreaRef.current) {
@@ -57,6 +68,30 @@ function PurePromptInputForm({ sendMessage }: PromptInputFormProps) {
 
   return (
     <div className="relative flex w-full flex-col gap-4">
+      <AnimatePresence>
+        {!isAtBottom && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            className="absolute bottom-36 left-1/2 z-50 -translate-x-1/2"
+          >
+            <Button
+              data-testid="scroll-to-bottom-button"
+              className="bg-background size-8 animate-bounce cursor-pointer rounded-full mix-blend-difference shadow-md"
+              size="icon"
+              variant="ghost"
+              onClick={(event) => {
+                event.preventDefault();
+                scrollToBottom();
+              }}
+            >
+              <RiArrowDownDoubleLine className="size-6" />
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <Form {...form}>
         <form
           onSubmit={(e) => void form.handleSubmit(onSubmit)(e)}
@@ -113,4 +148,10 @@ function PurePromptInputForm({ sendMessage }: PromptInputFormProps) {
   );
 }
 
-export const PromptInputForm = memo(PurePromptInputForm);
+export const PromptInputForm = memo(
+  PurePromptInputForm,
+  (prevProps, nextProps) => {
+    if (prevProps.status !== nextProps.status) return false;
+    return true;
+  },
+);

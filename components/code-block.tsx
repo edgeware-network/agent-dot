@@ -1,14 +1,17 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { ReactNode } from "react";
 
 interface CodeBlockProps {
+  node: unknown;
   inline: boolean;
   className: string;
   children: ReactNode;
 }
 
 export function CodeBlock({
+  node,
   inline,
   className,
   children,
