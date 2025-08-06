@@ -36,9 +36,9 @@ export const bondAgent = tool({
         "The token symbol of the network you are bonding on (e.g., 'DOT' for Polkadot, 'KSM' for Kusama). Defaults to 'DOT'.",
       ),
     payee: z
-      .enum(["Staked", "Stash", "Controller", "Account"])
+      .enum(["Staked", "Stash", "Controller", "Account", "None"])
       .describe(
-        "Specifies where staking rewards should be sent: 'Staked' (re-bonds rewards), 'Stash' (sends to stash account), 'Controller' (sends to controller account), or 'Account' (sends to a specific address). (Type: PalletStakingRewardDestination)",
+        "Specifies where staking rewards should be sent: 'Staked' (re-bonds rewards), 'Stash' (sends to stash account), 'Controller' (sends to controller account), or 'Account' (sends to a specific address) or 'None'. (Type: PalletStakingRewardDestination)",
       ),
     rewardAccount: z
       .string()
@@ -54,7 +54,7 @@ export const bondAgent = tool({
         controllerAccount: z.string(),
         value: z.string(),
         tokenSymbol: z.enum(["DOT", "KSM", "WND", "PAS"]),
-        payee: z.enum(["Staked", "Stash", "Controller", "Account"]),
+        payee: z.enum(["Staked", "Stash", "Controller", "Account", "None"]),
         rewardAccount: z.string().optional(),
       })
       .optional(),
