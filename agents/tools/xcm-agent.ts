@@ -34,7 +34,10 @@ const xcmAgent = tool({
     symbol: z
       .enum(["DOT", "WND", "PAS"])
       .describe("The symbol of the token to teleport."),
-    sender: z.string().describe("A wallet address to teleport from."),
+    sender: z
+      .string()
+      .describe("A wallet address to teleport from.")
+      .optional(),
   }),
   outputSchema: z.object({
     tx: z
@@ -59,6 +62,12 @@ const xcmAgent = tool({
         };
       }
       src = "AssetHub";
+    }
+
+    if (!sender) {
+      return {
+        message: "Please provide a wallet address to teleport from.",
+      };
     }
 
     try {
