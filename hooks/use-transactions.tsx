@@ -142,8 +142,9 @@ export function useTransactions() {
 
           const xcm = await tx.signAndSubmit(selectedAccount.polkadotSigner);
 
+          // BUG: might not for some chains src naming is different eg. peoplepolkadot is people-polkadot
           toast.success(
-            `XCM transaction sent: https://${src.toString()}.subscan.io/extrinsic/${xcm.txHash}`,
+            `XCM transaction sent: https://${src.toString().toLowerCase()}.subscan.io/extrinsic/${xcm.txHash}`,
             {
               id: toastId,
             },
@@ -155,7 +156,7 @@ export function useTransactions() {
               parts: [
                 {
                   type: "text",
-                  text: `XCM transaction sent: https://${activeChain.name.toLowerCase()}.subscan.io/extrinsic/${xcm.txHash}`,
+                  text: `XCM transaction sent: https://${src.toString().toLowerCase()}.subscan.io/extrinsic/${xcm.txHash}`,
                 },
               ],
             },
