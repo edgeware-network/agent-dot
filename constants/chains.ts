@@ -1,5 +1,6 @@
 export const CHAINS = {
   DOT: {
+    Polkadot: "Polkadot",
     AssetHub: "AssetHubPolkadot",
     Acala: "Acala",
     Ajuna: "Ajuna",
@@ -35,6 +36,7 @@ export const CHAINS = {
     Polimec: "Polimec",
   },
   WND: {
+    Westend: "Westend",
     AssetHub: "AssetHubWestend",
     BridgeHub: "BridgeHubWestend",
     Collectives: "CollectivesWestend",
@@ -43,6 +45,7 @@ export const CHAINS = {
     Penpal: "Penpal",
   },
   PAS: {
+    Paseo: "Paseo",
     AssetHub: "AssetHubPaseo",
     BridgeHub: "BridgeHubPaseo",
     Coretime: "CoretimePaseo",

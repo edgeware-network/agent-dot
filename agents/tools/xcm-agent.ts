@@ -1,12 +1,8 @@
+import { SYMBOL_TO_RELAY_CHAIN, TOKEN_DECIMALS } from "@/constants/chains";
+import { getNodeName, isAssetSupported } from "@/lib/paraspell";
+import { convertAmountToPlancks, isValidSS58Address } from "@/lib/utils";
 import {
-  CHAINS,
-  Parachains,
-  RELAY_CHAINS,
-  SYMBOL_TO_RELAY_CHAIN,
-  TOKEN_DECIMALS,
-} from "@/constants/chains";
-import { convertAmountToPlancks } from "@/lib/utils";
-import {
+  hasSupportForAsset,
   NODES_WITH_RELAY_CHAINS,
   NODES_WITH_RELAY_CHAINS_DOT_KSM,
 } from "@paraspell/sdk";
@@ -29,7 +25,8 @@ const getAvailableRelayChains = tool({
 
 const xcmAgent = tool({
   name: "xcmAgent",
-  description: `Teleport or xcm do transfers of DOT on ${SYMBOL_TO_RELAY_CHAIN.DOT} and its parachains/system chains ${Object.keys(CHAINS.DOT).join(", ")}, WND on ${SYMBOL_TO_RELAY_CHAIN.WND} and its parachains/system chains ${Object.keys(CHAINS.WND).join(", ")}, or PAS on ${SYMBOL_TO_RELAY_CHAIN.PAS} and its parachains/system chains ${Object.keys(CHAINS.PAS).join(", ")}. Always get active account wallet address for address parameter. Always use the current active network/chain as source network/chain.`,
+  description:
+    "Prepare and confirm an XCM transaction to teleport tokens on the Polkadot network.",
   inputSchema: z.object({
     src: z.string().describe("The source network/chain to teleport from."),
     dst: z.string().describe("The destination network/chain to teleport to."),
@@ -37,9 +34,7 @@ const xcmAgent = tool({
     symbol: z
       .enum(["DOT", "WND", "PAS"])
       .describe("The symbol of the token to teleport."),
-    address: z
-      .string()
-      .describe("A SS58-encoded wallet address to teleport from."),
+    sender: z.string().describe("A wallet address to teleport from."),
   }),
   outputSchema: z.object({
     tx: z
@@ -47,12 +42,14 @@ const xcmAgent = tool({
         src: z.enum(NODES_WITH_RELAY_CHAINS_DOT_KSM),
         dst: z.enum(NODES_WITH_RELAY_CHAINS_DOT_KSM),
         amount: z.string(),
+        symbol: z.enum(["DOT", "WND", "PAS"]),
+        sender: z.string(),
       })
       .optional(),
-    message: z.string(),
+    message: z.string().optional(),
   }),
   // eslint-disable-next-line @typescript-eslint/require-await
-  execute: async ({ src, dst, amount, symbol, address }) => {
+  execute: async ({ src, dst, amount, symbol, sender }) => {
     // currently active system chain can have prefix polkadot, westend, or paseo so we need to remove it
     if (src.includes(" Asset Hub")) {
       const prefix = src.split(" Asset Hub")[0];
@@ -64,129 +61,58 @@ const xcmAgent = tool({
       src = "AssetHub";
     }
 
-    // validate that src associated with `symbol`
-    const allowedRelay = SYMBOL_TO_RELAY_CHAIN[symbol];
-    const allowedParachains = Object.keys(CHAINS[symbol]).map((k) =>
-      k.toLowerCase().replace(/\s+/g, ""),
-    );
+    try {
+      const srcNodeName = getNodeName({ name: src, symbol });
+      const dstNodeName = getNodeName({ name: dst, symbol });
 
-    const srcNormalized = src.toLowerCase().replace(/\s+/g, "");
-
-    const isSrcValid =
-      src.toLowerCase() === allowedRelay.toLowerCase() ||
-      allowedParachains.includes(srcNormalized);
-
-    if (!isSrcValid) {
-      return {
-        message: `Invalid teleport: ${symbol} can only be teleported from ${src}`,
-      };
-    }
-
-    const srcIndex = RELAY_CHAINS.findIndex(
-      (chain) => chain.toLowerCase() === src.toLowerCase(),
-    );
-
-    const dstIndex = RELAY_CHAINS.findIndex(
-      (chain) => chain.toLowerCase() === dst.toLowerCase(),
-    );
-
-    if (srcIndex !== -1 && dstIndex !== -1) {
-      // both src and dst are relay chains
-      return {
-        message: `Teleport cannot be done between relay chains. ${src} and ${dst} are relay chains.`,
-      };
-    }
-
-    if (srcIndex === -1 && dstIndex === -1) {
-      // both src and dst are system chains
-      // check if src and dst are on the same relay chain
-      const parachains: Parachains = CHAINS[symbol];
-      const srcKey = Object.keys(parachains).find(
-        (key) => key.toLowerCase() === src.replace(/\s+/g, "").toLowerCase(),
-      );
-      const dstKey = Object.keys(parachains).find(
-        (key) => key.toLowerCase() === dst.replace(/\s+/g, "").toLowerCase(),
-      );
-
-      if (srcKey && dstKey) {
-        // src and dst are on the same relay chain
-        const srcparachain = parachains[srcKey as keyof Parachains];
-        const dstparachain = parachains[dstKey as keyof Parachains];
-
+      if (!isValidSS58Address(sender)) {
         return {
-          message: `Teleporting ${String(amount)} ${symbol} tokens from ${srcparachain} to ${dstparachain}.`,
-          tx: {
-            src: srcparachain,
-            dst: dstparachain,
-            amount: convertAmountToPlancks(amount, TOKEN_DECIMALS[symbol]),
-            symbol,
-            address,
-          },
+          message: `The provided address is not valid SS58 address. ${sender}`,
         };
       }
-      // src and dst are not on the same relay chain
-      return {
-        message: `${src} and ${dst} are not on the same relay chain.`,
-      };
-    }
 
-    if (srcIndex === -1 && dstIndex !== -1) {
-      // src is a system chain and dst is a relay chain
-      // check if src is on the same dst relay chain
-      const parachains: Parachains = CHAINS[symbol];
-      const srcKey = Object.keys(parachains).find(
-        (key) => key.toLowerCase() === src.replace(/\s+/g, "").toLowerCase(),
-      );
-
-      if (srcKey) {
-        // src is on the same dst relay chain
-        const srcparachain = parachains[srcKey as keyof Parachains];
-        const dstrelay = RELAY_CHAINS[dstIndex];
-
+      if (!srcNodeName || !dstNodeName) {
         return {
-          message: `Teleporting ${String(amount)} ${symbol} tokens from ${srcparachain} to ${dstrelay}.`,
-          tx: {
-            src: srcparachain,
-            dst: dstrelay,
-            amount: convertAmountToPlancks(amount, TOKEN_DECIMALS[symbol]),
-            symbol,
-            address,
-          },
+          message: "Invalid source or destination network/chain.",
         };
       }
-      // src is not on the same dst relay chain
-      return {
-        message: `${dst} doesn't have ${src} as a system chain.`,
-      };
-    }
 
-    if (srcIndex !== -1 && dstIndex === -1) {
-      // src is a relay chain and dst is a system chain
-      // check if src is on the same dst relay chain
-      const parachains: Parachains = CHAINS[symbol];
-      const dstKey = Object.keys(parachains).find(
-        (key) => key.toLowerCase() === dst.replace(/\s+/g, "").toLowerCase(),
-      );
-
-      if (dstKey) {
-        // dst is on the same src relay chain
-        const srcrelay = RELAY_CHAINS[srcIndex];
-        const dstparachain = parachains[dstKey as keyof Parachains];
-
+      if (!hasSupportForAsset(srcNodeName, symbol)) {
         return {
-          message: `Teleporting ${String(amount)} ${symbol} tokens from ${srcrelay} to ${dstparachain}.`,
-          tx: {
-            src: srcrelay,
-            dst: dstparachain,
-            amount: convertAmountToPlancks(amount, TOKEN_DECIMALS[symbol]),
-            symbol,
-            address,
-          },
+          message: `Teleport of ${symbol} is not supported on ${srcNodeName}.`,
         };
       }
-      // dst is not on the same src relay chain
+
+      const amountInPlancks = convertAmountToPlancks(
+        amount,
+        TOKEN_DECIMALS[symbol],
+      );
+
+      const isSupported = isAssetSupported({
+        symbol,
+        src: srcNodeName,
+        dst: dstNodeName,
+      });
+
+      if (!isSupported) {
+        return {
+          message: `Teleport of ${symbol} is not supported from ${src} to ${dst}.`,
+        };
+      }
       return {
-        message: `${src} doesn't have ${dst} as a system chain.`,
+        tx: {
+          src: srcNodeName,
+          dst: dstNodeName,
+          amount: amountInPlancks,
+          sender,
+          symbol,
+        },
+        message: `Teleport of ${String(amount)} ${symbol} from ${src} to ${dst} has been prepared. Sign and submit the transaction to confirm the teleport.`,
+      };
+    } catch (error) {
+      const err = error as Error;
+      return {
+        message: `Failed to prepare teleport: ${err.message}`,
       };
     }
   },

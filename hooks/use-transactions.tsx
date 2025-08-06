@@ -40,6 +40,10 @@ export function useTransactions() {
         });
       }
 
+      const toastId = toast.loading(
+        `Processing transaction of ${String(amount)} ${activeChain.chainSpec.properties.tokenSymbol} to ${to}`,
+      );
+
       if (api && selectedAccount) {
         const value =
           BigInt(amount) *
@@ -53,6 +57,9 @@ export function useTransactions() {
 
           toast.success(
             `Transaction sent: https://${activeChain.name.toLowerCase()}.subscan.io/extrinsic/${tx.txHash}`,
+            {
+              id: toastId,
+            },
           );
 
           void sendMessage({
@@ -66,12 +73,16 @@ export function useTransactions() {
           });
         } catch (error: unknown) {
           const err = error as Error;
+
+          toast.error(`Failed to sign transaction: ${err.message}`, {
+            id: toastId,
+          });
           void sendMessage({
             role: "assistant",
             parts: [
               {
                 type: "text",
-                text: `Failed to send transaction: ${err.message}`,
+                text: `Failed to sign transaction: ${err.message}`,
               },
             ],
           });
@@ -83,45 +94,84 @@ export function useTransactions() {
 
   const sendXcmTransaction = useCallback(
     async ({
-      from,
-      to,
+      src,
+      dst,
       amount,
       symbol,
-      address,
+      sender,
+      sendMessage,
     }: {
-      from: TNodeDotKsmWithRelayChains;
-      to: TNodeDotKsmWithRelayChains;
+      src: TNodeDotKsmWithRelayChains;
+      dst: TNodeDotKsmWithRelayChains;
       amount: string;
       symbol: string;
-      address: string;
-    }): Promise<{ success: boolean; message: string }> => {
+      sender: string;
+      sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
+    }) => {
+      if (!selectedAccount) {
+        void sendMessage({
+          role: "assistant",
+          parts: [
+            {
+              type: "text",
+              text: "Please connect your wallet first",
+            },
+          ],
+        });
+      }
+
+      const toastId = toast.loading(
+        `Processing XCM transaction of ${amount} ${symbol} from ${src} to ${dst}`,
+      );
+
       if (selectedAccount) {
         try {
           const tx = await Builder()
-            .from(from)
-            .to(to)
+            .from(src)
+            .to(dst)
             .currency({ symbol: symbol, amount: amount })
-            .address(convertSs58(address, to))
+            .address(convertSs58(sender, dst))
+            .senderAddress(sender)
             .build();
+
           const xcm = await tx.signAndSubmit(selectedAccount.polkadotSigner);
 
-          return {
-            success: true,
-            message: `https://${activeChain.name.toLowerCase()}.subscan.io/extrinsic/${xcm.txHash}`,
-          };
+          toast.success(
+            `XCM transaction sent: https://${src.toString()}.subscan.io/extrinsic/${xcm.txHash}`,
+            {
+              id: toastId,
+            },
+          );
+
+          void sendMessage(
+            {
+              role: "assistant",
+              parts: [
+                {
+                  type: "text",
+                  text: `XCM transaction sent: https://${activeChain.name.toLowerCase()}.subscan.io/extrinsic/${xcm.txHash}`,
+                },
+              ],
+            },
+            { metadata: { xcm } },
+          );
         } catch (error: unknown) {
           const err = error as Error;
-          return {
-            success: false,
-            message: `Failed to send xcm transaction: ${err.message}`,
-          };
+
+          toast.error(`Failed to sign xcm transaction: ${err.message}`, {
+            id: toastId,
+          });
+          void sendMessage({
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: `Failed to sign xcm transaction: ${err.message}`,
+              },
+            ],
+          });
         }
       }
-
-      return {
-        success: false,
-        message: "Selected account is not available.",
-      };
     },
     [selectedAccount, activeChain],
   );

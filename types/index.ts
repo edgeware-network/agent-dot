@@ -1,4 +1,5 @@
 import { AvailableApis, ChainConfig } from "@/papi-config";
+import { TNodeDotKsmWithRelayChains } from "@paraspell/sdk";
 import {
   InjectedExtension,
   InjectedPolkadotAccount,
@@ -26,4 +27,12 @@ export type ChainConfigRef = RefObject<ChainConfig[]>;
 export interface Transaction {
   to: string;
   amount: number;
+}
+
+export interface XcmTransaction {
+  src: TNodeDotKsmWithRelayChains;
+  dst: TNodeDotKsmWithRelayChains;
+  amount: string;
+  sender: string;
+  symbol: string;
 }

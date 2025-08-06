@@ -3,7 +3,7 @@
 import { MemoizedMarkdown } from "@/components/memoized-markdown";
 import { useTransactions } from "@/hooks/use-transactions";
 import { cn, sanitizeText } from "@/lib/utils";
-import { Transaction } from "@/types";
+import { Transaction, XcmTransaction } from "@/types";
 import { UseChatHelpers } from "@ai-sdk/react";
 import { UIMessage } from "ai";
 import { deepEqual } from "fast-equals";
@@ -31,7 +31,7 @@ function PurePreviewMessage({
     message.role === "assistant" && isLast && (isStreaming || !hasContent);
 
   const handleToolCallId = useRef(new Set<string>());
-  const { sendTransaction } = useTransactions();
+  const { sendTransaction, sendXcmTransaction } = useTransactions();
 
   return (
     <AnimatePresence>
@@ -105,22 +105,26 @@ function PurePreviewMessage({
                       return <div key={toolCallId}></div>;
                     }
                   }
-                  if (type === "tool-xcmAgent") {
-                    if (part.state === "input-available") {
-                      const input = part.input;
-                      return (
-                        <div key={part.toolCallId}>
-                          {JSON.stringify(input, null, 2)}
-                        </div>
-                      );
-                    }
-                    if (part.state === "output-available") {
-                      const output = part.output;
-                      return (
-                        <div key={part.toolCallId}>
-                          {JSON.stringify(output, null, 2)}
-                        </div>
-                      );
+                  if (
+                    type === "tool-xcmAgent" &&
+                    !handleToolCallId.current.has(`xcm-${part.toolCallId}`)
+                  ) {
+                    handleToolCallId.current.add(`xcm-${part.toolCallId}`);
+                    const { state, toolCallId } = part;
+
+                    if (state === "output-available") {
+                      const { tx } = part.output as {
+                        tx: XcmTransaction | undefined;
+                      };
+
+                      if (!tx) return <div key={toolCallId}></div>;
+
+                      void sendXcmTransaction({
+                        ...tx,
+                        sendMessage,
+                      });
+
+                      return <div key={toolCallId}></div>;
                     }
                   }
                   if (type === "tool-xcmStablecoinFromAssetHub") {
