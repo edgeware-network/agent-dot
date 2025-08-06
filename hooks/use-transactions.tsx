@@ -1,5 +1,7 @@
 "use client";
 
+import { TOKEN_DECIMALS } from "@/constants/chains";
+import { convertAmountToPlancks } from "@/lib/utils";
 import { ExtenstionContext } from "@/providers/extension-provider";
 import { useLightClientApi } from "@/providers/light-client-provider";
 import { UIMessage, UseChatHelpers } from "@ai-sdk/react";
@@ -103,7 +105,7 @@ export function useTransactions() {
     }: {
       src: TNodeDotKsmWithRelayChains;
       dst: TNodeDotKsmWithRelayChains;
-      amount: string;
+      amount: number;
       symbol: string;
       sender: string;
       sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
@@ -121,15 +123,19 @@ export function useTransactions() {
       }
 
       const toastId = toast.loading(
-        `Processing XCM transaction of ${amount} ${symbol} from ${src} to ${dst}`,
+        `Processing XCM transaction of ${amount.toFixed(3)} ${symbol} from ${src} to ${dst}`,
       );
 
       if (selectedAccount) {
+        const amountInPlancks = convertAmountToPlancks(
+          amount,
+          TOKEN_DECIMALS[symbol],
+        );
         try {
           const tx = await Builder()
             .from(src)
             .to(dst)
-            .currency({ symbol: symbol, amount: amount })
+            .currency({ symbol: symbol, amount: amountInPlancks })
             .address(convertSs58(sender, dst))
             .senderAddress(sender)
             .build();

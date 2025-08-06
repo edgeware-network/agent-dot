@@ -41,7 +41,7 @@ const xcmAgent = tool({
       .object({
         src: z.enum(NODES_WITH_RELAY_CHAINS_DOT_KSM),
         dst: z.enum(NODES_WITH_RELAY_CHAINS_DOT_KSM),
-        amount: z.string(),
+        amount: z.number(),
         symbol: z.enum(["DOT", "WND", "PAS"]),
         sender: z.string(),
       })
@@ -83,11 +83,6 @@ const xcmAgent = tool({
         };
       }
 
-      const amountInPlancks = convertAmountToPlancks(
-        amount,
-        TOKEN_DECIMALS[symbol],
-      );
-
       const isSupported = isAssetSupported({
         symbol,
         src: srcNodeName,
@@ -103,11 +98,11 @@ const xcmAgent = tool({
         tx: {
           src: srcNodeName,
           dst: dstNodeName,
-          amount: amountInPlancks,
+          amount,
           sender,
           symbol,
         },
-        message: `Teleport of ${String(amount)} ${symbol} from ${src} to ${dst} has been prepared. Sign and submit the transaction to confirm the teleport.`,
+        message: `Teleport of ${amount.toFixed(3)} ${symbol} from ${src} to ${dst} has been prepared. Sign and submit the transaction to confirm the teleport.`,
       };
     } catch (error) {
       const err = error as Error;

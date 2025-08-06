@@ -32,7 +32,7 @@ export interface Transaction {
 export interface XcmTransaction {
   src: TNodeDotKsmWithRelayChains;
   dst: TNodeDotKsmWithRelayChains;
-  amount: string;
+  amount: number;
   sender: string;
   symbol: string;
 }
