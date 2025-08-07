@@ -46,3 +46,8 @@ export interface Bond {
 export interface Unbond {
   value: number;
 }
+
+export interface JoinNominationPool {
+  poolId: number;
+  amount: number;
+}

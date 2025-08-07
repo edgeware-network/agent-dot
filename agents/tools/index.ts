@@ -24,7 +24,7 @@ export {
 } from "@/agents/tools/staking-agent";
 
 export {
-  joinNominationPoolsAgent,
   bondExtraNominationPoolsAgent,
+  joinNominationPoolsAgent,
   unbondFromNominationPoolsAgent,
-} from "@/agents/tools/nominationPools-agent";
+} from "@/agents/tools/nomination-pools-agent";

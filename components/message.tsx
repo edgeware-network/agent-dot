@@ -1,10 +1,17 @@
 "use client";
 
 import { MemoizedMarkdown } from "@/components/memoized-markdown";
+import { useNominationPools } from "@/hooks/use-nomination-pools";
 import { useStaking } from "@/hooks/use-staking";
 import { useTransactions } from "@/hooks/use-transactions";
 import { cn, sanitizeText } from "@/lib/utils";
-import { Bond, Transaction, Unbond, XcmTransaction } from "@/types";
+import {
+  Bond,
+  JoinNominationPool,
+  Transaction,
+  Unbond,
+  XcmTransaction,
+} from "@/types";
 import { UseChatHelpers } from "@ai-sdk/react";
 import { UIMessage } from "ai";
 import { deepEqual } from "fast-equals";
@@ -34,6 +41,7 @@ function PurePreviewMessage({
   const handleToolCallId = useRef(new Set<string>());
   const { sendTransaction, sendXcmTransaction } = useTransactions();
   const { bond, unbond } = useStaking();
+  const { join } = useNominationPools();
 
   return (
     <AnimatePresence>
@@ -175,6 +183,29 @@ function PurePreviewMessage({
 
                       void unbond({
                         amount: tx.value,
+                        sendMessage,
+                      });
+
+                      return <div key={toolCallId}></div>;
+                    }
+                  }
+                  if (
+                    type === "tool-joinNominationPoolsAgent" &&
+                    !handleToolCallId.current.has(`joinPool-${part.toolCallId}`)
+                  ) {
+                    handleToolCallId.current.add(`joinPool-${part.toolCallId}`);
+                    const { state, toolCallId } = part;
+
+                    if (state === "output-available") {
+                      const { tx } = part.output as {
+                        tx: JoinNominationPool | undefined;
+                      };
+
+                      if (!tx) return <div key={toolCallId}></div>;
+
+                      void join({
+                        poolId: tx.poolId,
+                        amount: tx.amount,
                         sendMessage,
                       });
 

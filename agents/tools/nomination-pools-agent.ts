@@ -1,8 +1,8 @@
 import {
+  MIN_POOL_BOND_AMOUNT,
   SYMBOL_TO_RELAY_CHAIN,
   TOKEN_DECIMALS,
   UNBONDING_PERIOD_DAYS_MAP,
-  MIN_POOL_BOND_AMOUNT,
 } from "@/constants/chains";
 import { convertAmountToPlancks } from "@/lib/utils";
 import { tool } from "ai";
@@ -40,10 +40,8 @@ export const joinNominationPoolsAgent = tool({
   outputSchema: z.object({
     tx: z
       .object({
-        senderAddress: z.string(),
-        amount: z.string(),
+        amount: z.number(),
         poolId: z.number().int().min(1),
-        tokenSymbol: z.enum(["DOT", "KSM", "WND", "PAS"]),
       })
       .optional(),
     message: z.string(),
@@ -51,42 +49,32 @@ export const joinNominationPoolsAgent = tool({
 
   // eslint-disable-next-line @typescript-eslint/require-await
   execute: async ({ senderAddress, amount, poolId, tokenSymbol }) => {
-    const networkName = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
+    const network = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
     const minBondAmount = MIN_POOL_BOND_AMOUNT[tokenSymbol] || 1;
-
-    let plancksAmount: string;
-    try {
-      plancksAmount = convertAmountToPlancks(
-        amount,
-        TOKEN_DECIMALS[tokenSymbol],
-      );
-    } catch (e) {
-      const errorMessage =
-        e instanceof Error ? e.message : "An unknown error occurred.";
-      return {
-        message: `❌ Invalid amount: ${errorMessage}`,
-      };
-    }
 
     if (amount < minBondAmount) {
       return {
-        message: `❌ Bond amount too low: You must bond at least ${String(minBondAmount)} ${tokenSymbol} to join a nomination pool on ${networkName}.`,
+        message: `The minimum bond amount for joining a pool on ${network} is ${minBondAmount.toFixed(2)} ${tokenSymbol}.`,
+      };
+    }
+
+    if (!poolId) {
+      return {
+        message: "Please provide a valid pool ID.",
       };
     }
 
     return {
-      message: `
-      ✅ **Nomination Pools Join prepared on ${networkName}**
-      **Account Joining:** \`${senderAddress}\`
-      **Amount to Bond:** \`${String(amount)} ${tokenSymbol}\`
-      **Nomination Pool ID:** \`${String(poolId)}\`
-      `,
       tx: {
-        senderAddress,
-        amount: plancksAmount,
+        amount,
         poolId,
-        tokenSymbol,
       },
+      message: `
+      senderAddress: ${senderAddress}
+      amount: ${amount.toFixed(2)} ${tokenSymbol}
+      poolId: ${poolId.toFixed(0)}
+      An staking request for ${amount.toFixed(2)} ${tokenSymbol} on ${network} has been prepared for pool ID ${poolId.toFixed(0)}. Please sign and submit the transaction to join the pool.
+      `,
     };
   },
 });
