@@ -1,9 +1,10 @@
 "use client";
 
 import { MemoizedMarkdown } from "@/components/memoized-markdown";
+import { useStaking } from "@/hooks/use-staking";
 import { useTransactions } from "@/hooks/use-transactions";
 import { cn, sanitizeText } from "@/lib/utils";
-import { Transaction, XcmTransaction } from "@/types";
+import { Bond, Transaction, XcmTransaction } from "@/types";
 import { UseChatHelpers } from "@ai-sdk/react";
 import { UIMessage } from "ai";
 import { deepEqual } from "fast-equals";
@@ -32,6 +33,7 @@ function PurePreviewMessage({
 
   const handleToolCallId = useRef(new Set<string>());
   const { sendTransaction, sendXcmTransaction } = useTransactions();
+  const { bond } = useStaking();
 
   return (
     <AnimatePresence>
@@ -123,6 +125,36 @@ function PurePreviewMessage({
                         ...tx,
                         sendMessage,
                       });
+
+                      return <div key={toolCallId}></div>;
+                    }
+                  }
+                  if (
+                    type === "tool-bondAgent" &&
+                    !handleToolCallId.current.has(`bond-${part.toolCallId}`)
+                  ) {
+                    handleToolCallId.current.add(`bond-${part.toolCallId}`);
+                    const { state, toolCallId } = part;
+
+                    if (state === "output-available") {
+                      const { tx } = part.output as {
+                        tx: Bond | undefined;
+                      };
+
+                      if (!tx) return <div key={toolCallId}></div>;
+                      if (tx.payee === "Account") {
+                        void bond({
+                          payee: { type: "Account", value: tx.rewardAccount },
+                          amount: tx.value,
+                          sendMessage,
+                        });
+                      } else {
+                        void bond({
+                          payee: { type: tx.payee, value: undefined },
+                          amount: tx.value,
+                          sendMessage,
+                        });
+                      }
 
                       return <div key={toolCallId}></div>;
                     }

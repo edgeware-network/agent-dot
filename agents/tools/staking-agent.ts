@@ -1,10 +1,10 @@
 import {
-  SYMBOL_TO_RELAY_CHAIN,
   MAX_NOMINATIONS,
-  UNBONDING_PERIOD_DAYS_MAP,
+  SYMBOL_TO_RELAY_CHAIN,
   TOKEN_DECIMALS,
+  UNBONDING_PERIOD_DAYS_MAP,
 } from "@/constants/chains";
-import { convertAmountToPlancks } from "@/lib/utils";
+import { convertAmountToPlancks, isValidSS58Address } from "@/lib/utils";
 import { tool } from "ai";
 import z from "zod";
 
@@ -50,10 +50,7 @@ export const bondAgent = tool({
   outputSchema: z.object({
     tx: z
       .object({
-        stashAccount: z.string(),
-        controllerAccount: z.string(),
-        value: z.string(),
-        tokenSymbol: z.enum(["DOT", "KSM", "WND", "PAS"]),
+        value: z.number(),
         payee: z.enum(["Staked", "Stash", "Controller", "Account", "None"]),
         rewardAccount: z.string().optional(),
       })
@@ -69,52 +66,49 @@ export const bondAgent = tool({
     payee,
     rewardAccount,
   }) => {
-    const networkName = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
-
-    if (payee === "Account" && !rewardAccount) {
-      return {
-        message:
-          "❌ Bond operation incomplete: If 'payee' is 'Account', 'rewardAccount' must be provided.",
-      };
-    }
-
-    let plancksValue: string;
+    const network = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
     try {
-      plancksValue = convertAmountToPlancks(value, TOKEN_DECIMALS[tokenSymbol]);
-    } catch (e) {
-      const errorMessage =
-        e instanceof Error ? e.message : "An unknown error occurred.";
+      if (payee === "Account") {
+        if (!rewardAccount) {
+          return {
+            message: "Please provide a reward account address.",
+          };
+        }
+        if (!isValidSS58Address(rewardAccount)) {
+          return {
+            message:
+              "The provided reward account address is not valid SS58 address.",
+          };
+        }
+        return {
+          tx: {
+            value,
+            payee,
+            rewardAccount,
+          },
+          message: `
+          stashAccount: ${stashAccount}
+          controllerAccount: ${controllerAccount}
+          A bond of ${value.toFixed(2)} ${tokenSymbol} tokens on ${network} has been prepared, with rewards sent to ${payee}:${rewardAccount}. Please sign and submit the transaction using wallet to bond the tokens.`,
+        };
+      } else {
+        return {
+          tx: {
+            value,
+            payee,
+          },
+          message: `
+          stashAccount: ${stashAccount}
+          controllerAccount: ${controllerAccount}
+          A bond of ${value.toFixed(2)} ${tokenSymbol} tokens on ${network} has been prepared, with rewards sent to ${payee}. Please sign and submit the transaction using wallet to bond the tokens.`,
+        };
+      }
+    } catch (error) {
+      const err = error as Error;
       return {
-        message: `❌ Invalid value format: ${errorMessage}`,
+        message: `Failed to bond: ${err.message}`,
       };
     }
-
-    let rewardDestinationMessage: string;
-    if (payee === "Account" && rewardAccount) {
-      rewardDestinationMessage = `Account: \`${rewardAccount}\``;
-    } else {
-      rewardDestinationMessage = payee;
-    }
-
-    return {
-      tx: {
-        stashAccount,
-        controllerAccount,
-        value: plancksValue,
-        tokenSymbol,
-        payee,
-        rewardAccount,
-      },
-      message: `
-✅ **Staking Bond prepared for ${networkName}**
-
-**Stash Account:** \`${stashAccount}\`
-**Controller Account:** \`${controllerAccount}\`
-**Amount to Bond:** \`${String(value)} ${tokenSymbol}\`
-**Reward Destination:** \`${rewardDestinationMessage}\`
-
-🔏 _Please sign this transaction using a signer like [Polkadot.js](https://polkadot.js.org) or a wallet like [Talisman](https://talisman.xyz). Funds will be locked for staking._`,
-    };
   },
 });
 

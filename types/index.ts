@@ -36,3 +36,9 @@ export interface XcmTransaction {
   sender: string;
   symbol: string;
 }
+
+export interface Bond {
+  value: number;
+  payee: "Staked" | "Stash" | "Controller" | "Account" | "None";
+  rewardAccount?: string;
+}

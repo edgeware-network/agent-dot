@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ChainConfig, chainConfig } from "@/papi-config";
 import { useLightClientApi } from "@/providers/light-client-provider";
+import { useRpcApi } from "@/providers/rpc-api-provider";
 import { WsEvent } from "polkadot-api/ws-provider/web";
 import { useMemo, useState } from "react";
 import { BiLoaderCircle } from "react-icons/bi";
@@ -24,6 +25,7 @@ import { toast } from "sonner";
 
 export default function ChainSelectButton() {
   const { activeChain, setActiveChain, connectionStatus } = useLightClientApi();
+  const { setActiveChain: setActiveApi } = useRpcApi();
   const [open, setOpen] = useState<boolean>(false);
 
   const TriggerButton = useMemo(
@@ -65,6 +67,7 @@ export default function ChainSelectButton() {
   function handleActiveChain(chain: ChainConfig) {
     (async () => {
       await setActiveChain(chain);
+      setActiveApi(chain);
     })().catch((err: unknown) => {
       const error = err as Error;
       toast.error(error.message);

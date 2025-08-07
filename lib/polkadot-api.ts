@@ -1,5 +1,6 @@
 import { formatBalance } from "@/lib/utils";
 import { AvailableApis, ChainConfig } from "@/papi-config";
+import { dot, pas, wnd } from "@polkadot-api/descriptors";
 import { SS58String } from "polkadot-api";
 import { InjectedExtension } from "polkadot-api/pjs-signer";
 import { RefObject } from "react";
@@ -43,3 +44,5 @@ export function matchInjectedAccount(
       acc.acc.name?.toLowerCase() === account.name.toLowerCase(),
   );
 }
+
+export type StakingDescriptors = typeof dot | typeof pas | typeof wnd;
