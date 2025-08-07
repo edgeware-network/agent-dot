@@ -4,7 +4,7 @@ import { MemoizedMarkdown } from "@/components/memoized-markdown";
 import { useStaking } from "@/hooks/use-staking";
 import { useTransactions } from "@/hooks/use-transactions";
 import { cn, sanitizeText } from "@/lib/utils";
-import { Bond, Transaction, XcmTransaction } from "@/types";
+import { Bond, Transaction, Unbond, XcmTransaction } from "@/types";
 import { UseChatHelpers } from "@ai-sdk/react";
 import { UIMessage } from "ai";
 import { deepEqual } from "fast-equals";
@@ -33,7 +33,7 @@ function PurePreviewMessage({
 
   const handleToolCallId = useRef(new Set<string>());
   const { sendTransaction, sendXcmTransaction } = useTransactions();
-  const { bond } = useStaking();
+  const { bond, unbond } = useStaking();
 
   return (
     <AnimatePresence>
@@ -155,6 +155,28 @@ function PurePreviewMessage({
                           sendMessage,
                         });
                       }
+
+                      return <div key={toolCallId}></div>;
+                    }
+                  }
+                  if (
+                    type === "tool-unbondAgent" &&
+                    !handleToolCallId.current.has(`unbond-${part.toolCallId}`)
+                  ) {
+                    handleToolCallId.current.add(`unbond-${part.toolCallId}`);
+                    const { state, toolCallId } = part;
+
+                    if (state === "output-available") {
+                      const { tx } = part.output as {
+                        tx: Unbond | undefined;
+                      };
+
+                      if (!tx) return <div key={toolCallId}></div>;
+
+                      void unbond({
+                        amount: tx.value,
+                        sendMessage,
+                      });
 
                       return <div key={toolCallId}></div>;
                     }

@@ -1,10 +1,9 @@
 import {
   MAX_NOMINATIONS,
   SYMBOL_TO_RELAY_CHAIN,
-  TOKEN_DECIMALS,
   UNBONDING_PERIOD_DAYS_MAP,
 } from "@/constants/chains";
-import { convertAmountToPlancks, isValidSS58Address } from "@/lib/utils";
+import { isValidSS58Address } from "@/lib/utils";
 import { tool } from "ai";
 import z from "zod";
 
@@ -214,49 +213,42 @@ export const unbondAgent = tool({
   outputSchema: z.object({
     tx: z
       .object({
-        controllerAccount: z.string(),
-        value: z.string(),
-        tokenSymbol: z.enum(["DOT", "KSM", "WND", "PAS"]),
+        value: z.number(),
       })
       .optional(),
     message: z.string(),
   }),
   // eslint-disable-next-line @typescript-eslint/require-await
   execute: async ({ controllerAccount, value, tokenSymbol }) => {
-    const networkName = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
+    const network = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
     const unbondingDays = UNBONDING_PERIOD_DAYS_MAP[tokenSymbol] || 28;
 
     if (value <= 0) {
       return {
-        message:
-          "❌ Invalid amount: Please provide a positive numeric value to unbond.",
+        message: "Please provide a positive numeric value for unbonding.",
       };
     }
 
-    let plancksValue: string;
-    try {
-      plancksValue = convertAmountToPlancks(value, TOKEN_DECIMALS[tokenSymbol]);
-    } catch (e) {
-      const errorMessage =
-        e instanceof Error ? e.message : "An unknown error occurred.";
+    if (!controllerAccount) {
       return {
-        message: `❌ Invalid value format: ${errorMessage}`,
+        message: "Please provide a controller account address.",
+      };
+    }
+
+    if (!isValidSS58Address(controllerAccount)) {
+      return {
+        message: `The provided address is not valid SS58 address. ${controllerAccount}`,
       };
     }
 
     return {
       tx: {
-        controllerAccount,
-        value: plancksValue,
-        tokenSymbol,
+        value,
       },
       message: `
-✅ **Unbond operation prepared for ${networkName}**
-
-**Controller Account:** \`${controllerAccount}\`
-**Amount to Unbond:** \`${String(value)} ${tokenSymbol}\`
-
-🔏 _Please sign this transaction using a signer like [Polkadot.js](https://polkadot.js.org) or a wallet like [Talisman](https://talisman.xyz). Funds will be available for withdrawal after approximately ${String(unbondingDays)} days on ${networkName}._`,
+      controllerAccount: ${controllerAccount}
+      An unbonding request for ${value.toFixed(2)} ${tokenSymbol} on ${network} has been prepared. The tokens will become available after an unbonding period of ${unbondingDays.toFixed(0)} days. Please sign and submit the transaction to unbond tokens.
+      `,
     };
   },
 });

@@ -42,3 +42,7 @@ export interface Bond {
   payee: "Staked" | "Stash" | "Controller" | "Account" | "None";
   rewardAccount?: string;
 }
+
+export interface Unbond {
+  value: number;
+}
