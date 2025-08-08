@@ -1,10 +1,9 @@
 import {
   MIN_POOL_BOND_AMOUNT,
   SYMBOL_TO_RELAY_CHAIN,
-  TOKEN_DECIMALS,
   UNBONDING_PERIOD_DAYS_MAP,
 } from "@/constants/chains";
-import { convertAmountToPlancks } from "@/lib/utils";
+import { isValidSS58Address } from "@/lib/utils";
 import { tool } from "ai";
 import z from "zod";
 
@@ -193,8 +192,7 @@ export const unbondFromNominationPoolsAgent = tool({
     tx: z
       .object({
         memberAddress: z.string(),
-        unbondingPoints: z.string(),
-        tokenSymbol: z.enum(["DOT", "KSM", "WND", "PAS"]),
+        unbondingPoints: z.number(),
       })
       .optional(),
     message: z.string(),
@@ -202,42 +200,37 @@ export const unbondFromNominationPoolsAgent = tool({
 
   // eslint-disable-next-line @typescript-eslint/require-await
   execute: async ({ memberAddress, unbondingPoints, tokenSymbol }) => {
-    const networkName = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
+    const network = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
     const unbondingDays = UNBONDING_PERIOD_DAYS_MAP[tokenSymbol] || 28;
 
     if (unbondingPoints <= 0) {
       return {
         message:
-          "❌ Invalid amount: Please provide a positive numeric value for unbonding points.",
+          "Please provide a positive numeric value for unbonding points.",
       };
     }
 
-    let plancksUnbondingPoints: string;
-    try {
-      plancksUnbondingPoints = convertAmountToPlancks(
-        unbondingPoints,
-        TOKEN_DECIMALS[tokenSymbol],
-      );
-    } catch (e) {
-      const errorMessage =
-        e instanceof Error ? e.message : "An unknown error occurred.";
+    if (!memberAddress) {
       return {
-        message: `❌ Invalid unbonding points format: ${errorMessage}`,
+        message: "Please provide a member address.",
+      };
+    }
+
+    if (!isValidSS58Address(memberAddress)) {
+      return {
+        message: "The provided member address is not valid SS58 address.",
       };
     }
 
     return {
       message: `
-✅ **Nomination Pools Unbond prepared on ${networkName}**
-
-**Member Account:** \`${memberAddress}\`
-**Unbonding Points:** \`${String(unbondingPoints)} ${tokenSymbol}\`
-
-_Funds will be withdrawable after the unbonding period (approximately ${String(unbondingDays)} days) on ${networkName}._`,
+      senderAddress: ${memberAddress}
+      amount: ${unbondingPoints.toFixed(2)} ${tokenSymbol}
+      An unbonding request for ${unbondingPoints.toFixed(2)} ${tokenSymbol} on ${network} has been prepared. The tokens will become available after an unbonding period of ${unbondingDays.toFixed(0)} days. Please sign and submit the transaction to initiate the unbonding process.
+      `,
       tx: {
         memberAddress,
-        unbondingPoints: plancksUnbondingPoints,
-        tokenSymbol,
+        unbondingPoints,
       },
     };
   },

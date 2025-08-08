@@ -11,6 +11,7 @@ import {
   JoinNominationPool,
   Transaction,
   Unbond,
+  UnbondFromNominationPool,
   XcmTransaction,
 } from "@/types";
 import { UseChatHelpers } from "@ai-sdk/react";
@@ -42,7 +43,7 @@ function PurePreviewMessage({
   const handleToolCallId = useRef(new Set<string>());
   const { sendTransaction, sendXcmTransaction } = useTransactions();
   const { bond, unbond } = useStaking();
-  const { join, bondExtraToPool } = useNominationPools();
+  const { join, bondExtraToPool, unbondFromPool } = useNominationPools();
 
   return (
     <AnimatePresence>
@@ -234,6 +235,33 @@ function PurePreviewMessage({
                       void bondExtraToPool({
                         extra: tx.type,
                         amount: tx.amount,
+                        sendMessage,
+                      });
+
+                      return <div key={toolCallId}></div>;
+                    }
+                  }
+                  if (
+                    type === "tool-unbondFromNominationPoolsAgent" &&
+                    !handleToolCallId.current.has(
+                      `unbondFromPool-${part.toolCallId}`,
+                    )
+                  ) {
+                    handleToolCallId.current.add(
+                      `unbondFromPool-${part.toolCallId}`,
+                    );
+                    const { state, toolCallId } = part;
+
+                    if (state === "output-available") {
+                      const { tx } = part.output as {
+                        tx: UnbondFromNominationPool | undefined;
+                      };
+
+                      if (!tx) return <div key={toolCallId}></div>;
+
+                      void unbondFromPool({
+                        member: tx.memberAddress,
+                        value: tx.unbondingPoints,
                         sendMessage,
                       });
 

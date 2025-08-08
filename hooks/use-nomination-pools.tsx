@@ -5,6 +5,7 @@ import { convertAmountToPlancks } from "@/lib/utils";
 import { ExtenstionContext } from "@/providers/extension-provider";
 import { useRpcApi } from "@/providers/rpc-api-provider";
 import { UseChatHelpers } from "@ai-sdk/react";
+import { MultiAddress } from "@polkadot-api/descriptors";
 import { UIMessage } from "ai";
 import { use, useCallback } from "react";
 import { toast } from "sonner";
@@ -200,8 +201,87 @@ export function useNominationPools() {
     [selectedAccount],
   );
 
+  const unbondFromPool = useCallback(
+    async ({
+      member,
+      value,
+      sendMessage,
+    }: {
+      member: string;
+      value: number;
+      sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
+    }) => {
+      if (!selectedAccount) {
+        toast.error("Please connect your wallet first");
+        void sendMessage({
+          role: "assistant",
+          parts: [
+            {
+              type: "text",
+              text: "Please connect your wallet first",
+            },
+          ],
+        });
+      }
+
+      if (selectedAccount && client && activeChain) {
+        const toastId = toast.loading(
+          `Processing the request to unbond nomination pool member ${member} with ${value.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol}`,
+        );
+        try {
+          const unbondingpoints = convertAmountToPlancks(
+            value,
+            activeChain.chainSpec.properties.tokenDecimals,
+          );
+          const descriptors = activeChain.descriptors as StakingDescriptors;
+          const api = client.getTypedApi(descriptors);
+
+          const nominatePoolTx = api.tx.NominationPools.unbond({
+            member_account: MultiAddress.Id(member),
+            unbonding_points: BigInt(unbondingpoints),
+          });
+
+          const tx = await nominatePoolTx.signAndSubmit(
+            selectedAccount.polkadotSigner,
+          );
+
+          if (!tx.ok) {
+            throw new Error(
+              `${tx.dispatchError.type}: ${JSON.stringify(tx.dispatchError.value, null, 2)}`,
+            );
+          }
+
+          toast.success(
+            `Member ${member} has successfully unbonded ${value.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} from Nomination Pool. Transaction hash: ${tx.txHash}`,
+            { id: toastId },
+          );
+
+          void sendMessage({
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: `Member ${member} has successfully unbonded ${value.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} from Nomination Pool. Transaction hash: ${tx.txHash}`,
+              },
+            ],
+          });
+        } catch (error) {
+          const err = error as Error;
+          toast.error(`Failed to unbond from Nomination Pool: ${err.message}`, {
+            id: toastId,
+          });
+          void sendMessage({
+            text: `Failed to unbond from Nomination Pool: ${err.message}`,
+          });
+        }
+      }
+    },
+    [selectedAccount],
+  );
+
   return {
     join,
     bondExtraToPool,
+    unbondFromPool,
   };
 }

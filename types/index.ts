@@ -56,3 +56,8 @@ export interface BondExtraNominationPool {
   type: "FreeBalance" | "Rewards";
   amount: number | undefined;
 }
+
+export interface UnbondFromNominationPool {
+  memberAddress: string;
+  unbondingPoints: number;
+}
