@@ -1,5 +1,6 @@
 import { AvailableApis, ChainConfig } from "@/papi-config";
 import { TNodeDotKsmWithRelayChains } from "@paraspell/sdk";
+import { PolkadotClient } from "polkadot-api";
 import {
   InjectedExtension,
   InjectedPolkadotAccount,
@@ -23,6 +24,7 @@ export type SetSelectedAccountRef = RefObject<
   (account: InjectedPolkadotAccount, extension: InjectedExtension) => void
 >;
 export type ChainConfigRef = RefObject<ChainConfig[]>;
+export type ClientRef = RefObject<PolkadotClient | null>;
 
 export interface Transaction {
   to: string;

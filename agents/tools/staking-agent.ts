@@ -111,6 +111,13 @@ export const bondAgent = tool({
   },
 });
 
+export const getAvailableValidators = tool({
+  name: "getAvailableValidators",
+  description:
+    "Get the list of available validators for staking on a network within the Polkadot ecosystem (e.g., Polkadot, Kusama, Westend, Paseo).",
+  inputSchema: z.object({}),
+});
+
 export const nominateAgent = tool({
   name: "nominateAgent",
   description:

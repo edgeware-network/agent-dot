@@ -1,5 +1,6 @@
 import { formatBalance } from "@/lib/utils";
 import { AvailableApis, ChainConfig } from "@/papi-config";
+import { ActiveChainRef, ClientRef } from "@/types";
 import { dot, pas, wnd } from "@polkadot-api/descriptors";
 import { SS58String } from "polkadot-api";
 import { InjectedExtension } from "polkadot-api/pjs-signer";
@@ -46,3 +47,47 @@ export function matchInjectedAccount(
 }
 
 export type StakingDescriptors = typeof dot | typeof pas | typeof wnd;
+
+export async function getSessionValidators({
+  client,
+  activeChain,
+}: {
+  client: ClientRef;
+  activeChain: ActiveChainRef;
+}) {
+  if (!client.current) return [];
+  const bestValidators: {
+    address: SS58String;
+    staked: bigint;
+  }[] = [];
+
+  const descriptors = activeChain.current.descriptors as StakingDescriptors;
+  const api = client.current.getTypedApi(descriptors);
+
+  const validators = await api.query.Session.Validators.getValue();
+  const activeEra = await api.query.Staking.ActiveEra.getValue();
+
+  if (activeEra) {
+    for (const val of validators) {
+      const exposure = await api.query.Staking.ErasStakersOverview.getValue(
+        activeEra.index,
+        val,
+      );
+
+      if (exposure) {
+        bestValidators.push({
+          address: val,
+          staked: exposure.total,
+        });
+      }
+    }
+
+    const sorted = bestValidators.sort((a, b) => Number(b.staked - a.staked));
+
+    if (sorted.length > 10) {
+      return sorted.slice(0, 10);
+    }
+  }
+
+  return [];
+}

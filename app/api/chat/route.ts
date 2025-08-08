@@ -13,9 +13,8 @@ import {
   transferAgent,
   unbondAgent,
   unbondFromNominationPoolsAgent,
-  // getAvailableRelayChains,
-  // getAvailableSystemChains,
   xcmAgent,
+  getAvailableValidators,
   xcmStablecoinFromAssetHub,
 } from "@/agents/tools";
 import { openai } from "@ai-sdk/openai";
@@ -64,6 +63,8 @@ You MUST always respond by calling one of the following tools based on the user'
     - Ask for confirmation before executing. Proceed only if the user types 'yes'.
     - Always get the recipient wallet address from the user for this tool only. The sender and recipient can or cannot be an Ethereum style address.
     - Do the above 2 steps for each stablecoin only.
+
+• getAvailableValidators — List available validators for staking on a polkadot-sdk network.
 
 • stakingAgent — handles all staking operations for polkadot-sdk chains. This agent manages bonding, nominating and unbonding actions.
   • bondAgent — Bond tokens for staking on a Proof-of-Stake network (eg., Polkadot, Kusama, Westend, Paseo).
@@ -121,8 +122,7 @@ const tools: ToolSet = {
   getActiveNetwork: getActiveNetwork,
   setActiveNetwork: setActiveNetwork,
   transferAgent: transferAgent,
-  // getAvailableRelayChains: getAvailableRelayChains,
-  // getAvailableSystemChains: getAvailableSystemChains
+  getAvailableValidators: getAvailableValidators,
   xcmAgent: xcmAgent,
   xcmStablecoinFromAssetHub: xcmStablecoinFromAssetHub,
   bondAgent: bondAgent,

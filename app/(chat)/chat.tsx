@@ -19,6 +19,7 @@ export default function Chat() {
     selectedExtensionsRef,
     setActiveChainRef,
     setSelectedAccountRef,
+    clientRef,
   } = useRefObject();
 
   const { messages, sendMessage, addToolResult, status } = useChat({
@@ -36,6 +37,7 @@ export default function Chat() {
         selectedAccountRef,
         setSelectedAccountRef,
         selectedExtensionsRef,
+        clientRef,
         toolCall,
         addToolResult,
       });

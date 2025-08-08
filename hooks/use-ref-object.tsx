@@ -9,9 +9,11 @@ import {
 } from "polkadot-api/pjs-signer";
 import { use } from "react";
 import { useSyncedRef } from "./use-sync-ref";
+import { useRpcApi } from "@/providers/rpc-api-provider";
 
 export function useRefObject() {
   const { api, activeChain, setActiveChain } = useLightClientApi();
+  const { client } = useRpcApi();
   const {
     connectedAccounts,
     selectedAccount,
@@ -35,6 +37,7 @@ export function useRefObject() {
     useSyncedRef<typeof setSelectedAccount>(setSelectedAccount);
   const selectedExtensionsRef =
     useSyncedRef<InjectedExtension[]>(selectedExtensions);
+  const clientRef = useSyncedRef<typeof client>(client);
 
   return {
     activeChainRef,
@@ -44,5 +47,6 @@ export function useRefObject() {
     selectedAccountRef,
     setSelectedAccountRef,
     selectedExtensionsRef,
+    clientRef,
   };
 }

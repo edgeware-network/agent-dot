@@ -1,9 +1,14 @@
 /* eslint-disable @typescript-eslint/no-floating-promises */
-import { getAccountBalance, matchInjectedAccount } from "@/lib/polkadot-api";
+import {
+  getAccountBalance,
+  getSessionValidators,
+  matchInjectedAccount,
+} from "@/lib/polkadot-api";
 import { chainConfig } from "@/papi-config";
 import {
   ActiveChainRef,
   ApiRef,
+  ClientRef,
   ConnectedAccountsRef,
   SelectedAccountRef,
   SelectedExtensionsRef,
@@ -21,6 +26,7 @@ export async function onChatToolCall({
   selectedAccountRef,
   setSelectedAccountRef,
   selectedExtensionsRef,
+  clientRef,
   toolCall,
   addToolResult,
 }: {
@@ -31,6 +37,7 @@ export async function onChatToolCall({
   selectedAccountRef: SelectedAccountRef;
   setSelectedAccountRef: SetSelectedAccountRef;
   selectedExtensionsRef: SelectedExtensionsRef;
+  clientRef: ClientRef;
   toolCall: {
     toolName: string;
     toolCallId: string;
@@ -168,41 +175,23 @@ export async function onChatToolCall({
     }
   }
 
-  // if (toolCall.toolName === "getAvailableSystemChains") {
-  //   const system = chainConfig
-  //     .filter((chain) => {
-  //       return typeof chain.chainSpec.para_id === "number";
-  //     })
-  //     .map((chain) => {
-  //       return {
-  //         name: chain.name,
-  //         id: chain.chainSpec.para_id,
-  //       };
-  //     });
+  if (toolCall.toolName === "getAvailableValidators") {
+    const validators = await getSessionValidators({
+      client: clientRef,
+      activeChain: activeChainRef,
+    });
 
-  //   void addToolResult({
-  //     tool: toolCall.toolName,
-  //     toolCallId: toolCall.toolCallId,
-  //     output: JSON.stringify(system),
-  //   });
-  // }
+    const val_addrs = validators.map((validator) => {
+      return {
+        address: validator.address,
+        staked: validator.staked.toString(),
+      };
+    });
 
-  // if (toolCall.toolName === "getAvailableRelayChains") {
-  //   const relay = chainConfig
-  //     .filter((chain) => {
-  //       return typeof chain.chainSpec.para_id === "undefined";
-  //     })
-  //     .map((chain) => {
-  //       return {
-  //         name: chain.name,
-  //         type: chain.chainSpec.para_id,
-  //       };
-  //     });
-
-  //   void addToolResult({
-  //     tool: toolCall.toolName,
-  //     toolCallId: toolCall.toolCallId,
-  //     output: JSON.stringify(relay),
-  //   });
-  // }
+    addToolResult({
+      tool: toolCall.toolName,
+      toolCallId: toolCall.toolCallId,
+      output: JSON.stringify(val_addrs),
+    });
+  }
 }
