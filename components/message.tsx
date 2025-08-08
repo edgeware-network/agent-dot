@@ -9,6 +9,7 @@ import {
   Bond,
   BondExtraNominationPool,
   JoinNominationPool,
+  Nominate,
   Transaction,
   Unbond,
   UnbondFromNominationPool,
@@ -42,7 +43,7 @@ function PurePreviewMessage({
 
   const handleToolCallId = useRef(new Set<string>());
   const { sendTransaction, sendXcmTransaction } = useTransactions();
-  const { bond, unbond } = useStaking();
+  const { bond, unbond, nominate } = useStaking();
   const { join, bondExtraToPool, unbondFromPool } = useNominationPools();
 
   return (
@@ -165,6 +166,28 @@ function PurePreviewMessage({
                           sendMessage,
                         });
                       }
+
+                      return <div key={toolCallId}></div>;
+                    }
+                  }
+                  if (
+                    type === "tool-nominateAgent" &&
+                    !handleToolCallId.current.has(`nominate-${part.toolCallId}`)
+                  ) {
+                    handleToolCallId.current.add(`nominate-${part.toolCallId}`);
+                    const { state, toolCallId } = part;
+
+                    if (state === "output-available") {
+                      const { tx } = part.output as {
+                        tx: Nominate | undefined;
+                      };
+
+                      if (!tx) return <div key={toolCallId}></div>;
+
+                      void nominate({
+                        ...tx,
+                        sendMessage,
+                      });
 
                       return <div key={toolCallId}></div>;
                     }

@@ -145,51 +145,49 @@ export const nominateAgent = tool({
   outputSchema: z.object({
     tx: z
       .object({
-        controllerAccount: z.string(),
         targets: z.array(z.string()),
-        tokenSymbol: z.enum(["DOT", "KSM", "WND", "PAS"]),
       })
       .optional(),
     message: z.string(),
   }),
   // eslint-disable-next-line @typescript-eslint/require-await
   execute: async ({ controllerAccount, targets, tokenSymbol }) => {
-    const networkName = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
+    const network = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
     const maxValidators = MAX_NOMINATIONS[tokenSymbol] || 16;
+
+    if (!controllerAccount) {
+      return {
+        message: "Please provide a controller account address.",
+      };
+    }
+
+    if (!isValidSS58Address(controllerAccount)) {
+      return {
+        message:
+          "The provided controller account address is not valid SS58 address.",
+      };
+    }
 
     if (targets.length === 0) {
       return {
-        message:
-          "❌ Nomination operation incomplete: You must nominate at least one validator.",
-      };
-    }
-    if (targets.length > maxValidators) {
-      return {
-        message: `❌ Nomination operation incomplete: You can nominate a maximum of ${String(maxValidators)} validators on the ${networkName} network. You provided ${String(targets.length)}.`,
+        message: "Please provide at least one validator to nominate.",
       };
     }
 
-    const validatorList = targets
-      .map(
-        (address: string, index: number) =>
-          `${String(index + 1)}. \`${address}\``,
-      )
-      .join("\n");
+    if (targets.length > maxValidators) {
+      return {
+        message: `You can nominate a maximum of ${maxValidators.toFixed(0)} validators on ${network}.`,
+      };
+    }
 
     return {
       tx: {
-        controllerAccount,
         targets,
-        tokenSymbol,
       },
       message: `
-✅ **Nomination prepared**
-
-**Controller Account:** \`${controllerAccount}\`
-**Nominated Validators (on ${networkName} network):**
-${validatorList}
-
-🔏 _Please sign this transaction using a signer like [Polkadot.js](https://polkadot.js.org) or a wallet like [Talisman](https://talisman.xyz). Your staking preferences on the ${networkName} network will be updated._`,
+      controllerAccount: ${controllerAccount}
+      targets: ${targets.join(", ")}
+      An nomination request for ${targets.length.toFixed(0)} validators on ${network} has been prepared. Please sign and submit the transaction to nominate the validators.`,
     };
   },
 });

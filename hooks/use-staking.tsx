@@ -5,6 +5,7 @@ import { convertAmountToPlancks } from "@/lib/utils";
 import { ExtenstionContext } from "@/providers/extension-provider";
 import { useRpcApi } from "@/providers/rpc-api-provider";
 import { UIMessage, UseChatHelpers } from "@ai-sdk/react";
+import { MultiAddress } from "@polkadot-api/descriptors";
 import { use, useCallback } from "react";
 import { toast } from "sonner";
 
@@ -192,8 +193,79 @@ export function useStaking() {
     [selectedAccount],
   );
 
+  const nominate = useCallback(
+    async ({
+      targets,
+      sendMessage,
+    }: {
+      targets: string[];
+      sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
+    }) => {
+      if (!selectedAccount) {
+        toast.error("Please connect your wallet first");
+        void sendMessage({
+          role: "assistant",
+          parts: [
+            {
+              type: "text",
+              text: "Please connect your wallet first",
+            },
+          ],
+        });
+      }
+
+      if (selectedAccount && client && activeChain) {
+        const toastId = toast.loading(
+          `Processing the nomination transaction of ${targets.length.toFixed(0)} validators on ${activeChain.key} network`,
+        );
+        try {
+          const descriptors = activeChain.descriptors as StakingDescriptors;
+          const api = client.getTypedApi(descriptors);
+          const tx = await api.tx.Staking.nominate({
+            targets: targets.map((target) => MultiAddress.Id(target)),
+          }).signAndSubmit(selectedAccount.polkadotSigner);
+
+          if (!tx.ok) {
+            throw new Error(
+              `${tx.dispatchError.type}: ${JSON.stringify(tx.dispatchError.value, null, 2)}`,
+            );
+          }
+
+          toast.success(
+            `Nomination transaction of ${targets.length.toFixed(0)} validators on ${activeChain.key} was successfully submitted. Transaction hash: ${tx.txHash}`,
+            {
+              id: toastId,
+            },
+          );
+
+          void sendMessage({
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: `Nomination transaction of ${targets.join(", ")} validators on ${activeChain.key} was successfully submitted. Transaction hash: ${tx.txHash}`,
+              },
+            ],
+          });
+        } catch (e) {
+          const errorMessage =
+            e instanceof Error ? e.message : "An unknown error occurred.";
+          toast.error(`Failed to nominate: ${errorMessage}`, {
+            id: toastId,
+          });
+
+          void sendMessage({
+            text: `Failed to nominate: ${errorMessage}`,
+          });
+        }
+      }
+    },
+    [selectedAccount],
+  );
+
   return {
     bond,
     unbond,
+    nominate,
   };
 }

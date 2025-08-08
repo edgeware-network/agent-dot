@@ -45,6 +45,10 @@ export interface Bond {
   rewardAccount?: string;
 }
 
+export interface Nominate {
+  targets: string[];
+}
+
 export interface Unbond {
   value: number;
 }
