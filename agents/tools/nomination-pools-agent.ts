@@ -126,62 +126,44 @@ export const bondExtraNominationPoolsAgent = tool({
       ),
   }),
   outputSchema: z.object({
-    tx: z
-      .object({
-        memberAddress: z.string(),
-        extra: z.any(),
-        tokenSymbol: z.enum(["DOT", "KSM", "WND", "PAS"]),
-      })
-      .optional(),
+    tx: bondExtraParamSchema.optional(),
     message: z.string(),
   }),
 
   // eslint-disable-next-line @typescript-eslint/require-await
   execute: async ({ memberAddress, extra, tokenSymbol }) => {
-    const networkName = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
+    const network = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
 
-    let plancksAmount: string | undefined;
-    let amountToBond: number | undefined;
-
-    if (extra.type === "FreeBalance") {
-      amountToBond = extra.amount;
-      if (amountToBond <= 0) {
+    if (extra.type === "FreeBalance" && extra.amount) {
+      if (extra.amount <= 0) {
         return {
           message:
-            "❌ Invalid amount: Please provide a positive numeric value for FreeBalance.",
+            "Invalid amount: Please provide a positive numeric value for FreeBalance.",
         };
       }
-      try {
-        plancksAmount = convertAmountToPlancks(
-          amountToBond,
-          TOKEN_DECIMALS[tokenSymbol],
-        );
-      } catch (e) {
-        const errorMessage =
-          e instanceof Error ? e.message : "An unknown error occurred.";
-        return {
-          message: `❌ Invalid amount: ${errorMessage}`,
-        };
-      }
+      return {
+        tx: {
+          type: extra.type,
+          amount: extra.amount,
+        },
+        message: `
+        senderAddress: ${memberAddress}
+        amount: ${extra.amount.toFixed(2)} ${tokenSymbol}
+        A bond extra request of ${extra.amount.toFixed(2)} ${tokenSymbol} on ${network} has been prepared. Bonding happens from your free balance. Please sign and submit the transaction to bond extra funds.`,
+      };
     }
 
-    // Prepare the 'extra' argument for the transaction
-    const txExtra =
-      extra.type === "FreeBalance" ? { FreeBalance: plancksAmount } : "Rewards";
-
-    return {
-      message: `
-✅ **Nomination Pool Bond Extra prepared on ${networkName}**
-**Member Account:** \`${memberAddress}\`
-**Bonding Type:** ${extra.type === "FreeBalance" ? "from Free Balance" : "by re-staking Rewards"}
-${amountToBond ? `**Amount:** \`${String(amountToBond)} ${tokenSymbol}\`` : ""}
-      `,
-      tx: {
-        memberAddress,
-        extra: txExtra,
-        tokenSymbol,
-      },
-    };
+    if (extra.type === "Rewards") {
+      return {
+        tx: {
+          type: extra.type,
+          amount: undefined,
+        },
+        message: `
+        senderAddress: ${memberAddress}
+        A bond extra request of ${tokenSymbol} on ${network} has been prepared. Bonding happens by re-staking accumulated rewards. Please sign and submit the transaction to bond extra funds.`,
+      };
+    }
   },
 });
 

@@ -51,3 +51,8 @@ export interface JoinNominationPool {
   poolId: number;
   amount: number;
 }
+
+export interface BondExtraNominationPool {
+  type: "FreeBalance" | "Rewards";
+  amount: number | undefined;
+}

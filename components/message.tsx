@@ -7,6 +7,7 @@ import { useTransactions } from "@/hooks/use-transactions";
 import { cn, sanitizeText } from "@/lib/utils";
 import {
   Bond,
+  BondExtraNominationPool,
   JoinNominationPool,
   Transaction,
   Unbond,
@@ -41,7 +42,7 @@ function PurePreviewMessage({
   const handleToolCallId = useRef(new Set<string>());
   const { sendTransaction, sendXcmTransaction } = useTransactions();
   const { bond, unbond } = useStaking();
-  const { join } = useNominationPools();
+  const { join, bondExtraToPool } = useNominationPools();
 
   return (
     <AnimatePresence>
@@ -205,6 +206,33 @@ function PurePreviewMessage({
 
                       void join({
                         poolId: tx.poolId,
+                        amount: tx.amount,
+                        sendMessage,
+                      });
+
+                      return <div key={toolCallId}></div>;
+                    }
+                  }
+                  if (
+                    type === "tool-bondExtraNominationPoolsAgent" &&
+                    !handleToolCallId.current.has(
+                      `bondExtraToPool-${part.toolCallId}`,
+                    )
+                  ) {
+                    handleToolCallId.current.add(
+                      `bondExtraToPool-${part.toolCallId}`,
+                    );
+                    const { state, toolCallId } = part;
+
+                    if (state === "output-available") {
+                      const { tx } = part.output as {
+                        tx: BondExtraNominationPool | undefined;
+                      };
+
+                      if (!tx) return <div key={toolCallId}></div>;
+
+                      void bondExtraToPool({
+                        extra: tx.type,
                         amount: tx.amount,
                         sendMessage,
                       });
