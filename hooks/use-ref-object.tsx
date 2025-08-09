@@ -1,19 +1,23 @@
 "use client";
 
-import { ChainConfig, AvailableApis } from "@/papi-config";
+import { useSyncedRef } from "@/hooks/use-sync-ref";
+import { AvailableApis, ChainConfig } from "@/papi-config";
 import { ExtenstionContext } from "@/providers/extension-provider";
 import { useLightClientApi } from "@/providers/light-client-provider";
+import { useRpcApi } from "@/providers/rpc-api-provider";
 import {
-  InjectedPolkadotAccount,
   InjectedExtension,
+  InjectedPolkadotAccount,
 } from "polkadot-api/pjs-signer";
 import { use } from "react";
-import { useSyncedRef } from "./use-sync-ref";
-import { useRpcApi } from "@/providers/rpc-api-provider";
 
 export function useRefObject() {
   const { api, activeChain, setActiveChain } = useLightClientApi();
-  const { client } = useRpcApi();
+  const {
+    client,
+    activeChain: activeRpcChain,
+    setActiveChain: setActiveRpcChain,
+  } = useRpcApi();
   const {
     connectedAccounts,
     selectedAccount,
@@ -38,6 +42,9 @@ export function useRefObject() {
   const selectedExtensionsRef =
     useSyncedRef<InjectedExtension[]>(selectedExtensions);
   const clientRef = useSyncedRef<typeof client>(client);
+  const activeRpcChainRef = useSyncedRef<ChainConfig | null>(activeRpcChain);
+  const setActiveRpcChainRef =
+    useSyncedRef<typeof setActiveRpcChain>(setActiveRpcChain);
 
   return {
     activeChainRef,
@@ -48,5 +55,7 @@ export function useRefObject() {
     setSelectedAccountRef,
     selectedExtensionsRef,
     clientRef,
+    activeRpcChainRef,
+    setActiveRpcChainRef,
   };
 }

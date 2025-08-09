@@ -13,6 +13,7 @@ import {
   SelectedAccountRef,
   SelectedExtensionsRef,
   SetActiveChainRef,
+  SetActiveRpcChainRef,
   SetSelectedAccountRef,
 } from "@/types";
 import { UIMessage, UseChatHelpers } from "@ai-sdk/react";
@@ -27,6 +28,7 @@ export async function onChatToolCall({
   setSelectedAccountRef,
   selectedExtensionsRef,
   clientRef,
+  setActiveRpcChainRef,
   toolCall,
   addToolResult,
 }: {
@@ -38,6 +40,7 @@ export async function onChatToolCall({
   setSelectedAccountRef: SetSelectedAccountRef;
   selectedExtensionsRef: SelectedExtensionsRef;
   clientRef: ClientRef;
+  setActiveRpcChainRef: SetActiveRpcChainRef;
   toolCall: {
     toolName: string;
     toolCallId: string;
@@ -155,6 +158,7 @@ export async function onChatToolCall({
     }
     if (network) {
       void setActiveChainRef.current(network);
+      setActiveRpcChainRef.current(network);
       addToolResult({
         tool: toolCall.toolName,
         toolCallId: toolCall.toolCallId,

@@ -25,6 +25,8 @@ export type SetSelectedAccountRef = RefObject<
 >;
 export type ChainConfigRef = RefObject<ChainConfig[]>;
 export type ClientRef = RefObject<PolkadotClient | null>;
+export type ActiveRpcChainRef = RefObject<ChainConfig>;
+export type SetActiveRpcChainRef = RefObject<(chain: ChainConfig) => void>;
 
 export interface Transaction {
   to: string;

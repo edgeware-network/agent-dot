@@ -20,6 +20,7 @@ export default function Chat() {
     setActiveChainRef,
     setSelectedAccountRef,
     clientRef,
+    setActiveRpcChainRef,
   } = useRefObject();
 
   const { messages, sendMessage, addToolResult, status } = useChat({
@@ -39,6 +40,7 @@ export default function Chat() {
         selectedExtensionsRef,
         clientRef,
         toolCall,
+        setActiveRpcChainRef,
         addToolResult,
       });
     },
