@@ -1,4 +1,4 @@
-import { CHAINS, Parachains } from "@/constants/chains";
+import { CHAINS } from "@/constants/chains";
 import { getSupportedAssets, TNodeDotKsmWithRelayChains } from "@paraspell/sdk";
 
 export function getNodeName({
@@ -8,13 +8,17 @@ export function getNodeName({
   name: string;
   symbol: "DOT" | "WND" | "PAS";
 }) {
-  const matchedKey = Object.keys(CHAINS[symbol]).find(
+  const parachains = CHAINS[symbol];
+
+  const keys = Object.keys(parachains);
+
+  const matchedKey = keys.find(
     (key) => key.toLowerCase() === name.toLowerCase(),
   );
 
-  if (!matchedKey) return null;
+  if (!matchedKey) return undefined;
 
-  return CHAINS[symbol][matchedKey as keyof Parachains];
+  return CHAINS[symbol][matchedKey] as TNodeDotKsmWithRelayChains;
 }
 
 export function isAssetSupported({

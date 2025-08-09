@@ -79,3 +79,7 @@ export function convertAmountToPlancks(
 export function sanitizeText(text: string) {
   return text.replace("<has_function_call>", "");
 }
+
+export function isValidEthereumAddress(address: string) {
+  return /^0x[a-fA-F0-9]{40}$/.test(address);
+}

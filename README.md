@@ -6,7 +6,7 @@
 
 ## **AI-powered blockchain interactions for the Polkadot ecosystem**
 
-[![Version](https://img.shields.io/badge/version-1.9.1-blue.svg)](https://github.com/your-username/agent-dot/releases)
+[![Version](https://img.shields.io/badge/version-1.9.2-blue.svg)](https://github.com/your-username/agent-dot/releases)
 
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18-green.svg)](https://nodejs.org/)
 [![Next.js](https://img.shields.io/badge/next.js-15-black.svg)](https://nextjs.org/)

@@ -132,19 +132,112 @@ export function useTransactions() {
           TOKEN_DECIMALS[symbol],
         );
         try {
-          const tx = await Builder()
+          const builder = Builder()
             .from(src)
             .to(dst)
             .currency({ symbol: symbol, amount: amountInPlancks })
             .address(convertSs58(sender, dst))
-            .senderAddress(sender)
-            .build();
+            .senderAddress(sender);
+
+          const tx = await builder.build();
 
           const xcm = await tx.signAndSubmit(selectedAccount.polkadotSigner);
 
           // BUG: might not for some chains src naming is different eg. peoplepolkadot is people-polkadot
           toast.success(
             `XCM transaction sent: https://${src.toLowerCase()}.subscan.io/extrinsic/${xcm.txHash}`,
+            {
+              id: toastId,
+            },
+          );
+
+          await builder.disconnect();
+
+          void sendMessage(
+            {
+              role: "assistant",
+              parts: [
+                {
+                  type: "text",
+                  text: `XCM transaction sent: https://${src.toLowerCase()}.subscan.io/extrinsic/${xcm.txHash}`,
+                },
+              ],
+            },
+            { metadata: { xcm } },
+          );
+        } catch (error: unknown) {
+          const err = error as Error;
+
+          toast.error(`Failed to sign xcm transaction: ${err.message}`, {
+            id: toastId,
+          });
+        }
+      }
+    },
+    [selectedAccount, activeChain],
+  );
+
+  const sendXcmStablecoinTransaction = useCallback(
+    async ({
+      src,
+      dst,
+      amount,
+      id,
+      symbol,
+      recipient,
+      sendMessage,
+    }: {
+      src: TNodeDotKsmWithRelayChains;
+      dst: TNodeWithRelayChains;
+      amount: number;
+      id: TCurrency;
+      symbol: "USDT" | "USDC";
+      recipient: string;
+      sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
+    }) => {
+      if (!selectedAccount) {
+        toast.error("Please connect your wallet first");
+        void sendMessage({
+          role: "assistant",
+          parts: [
+            {
+              type: "text",
+              text: "Please connect your wallet first",
+            },
+          ],
+        });
+      }
+
+      const toastId = toast.loading(
+        `Processing XCM transaction of ${amount.toFixed(3)} ${symbol} from ${src} to ${dst}`,
+      );
+
+      if (selectedAccount) {
+        const amountInPlancks = convertAmountToPlancks(
+          amount,
+          TOKEN_DECIMALS[symbol],
+        );
+        try {
+          const builder = Builder()
+            .from(src)
+            .to(dst)
+            .currency({ amount: amountInPlancks, id })
+            .address(recipient)
+            .senderAddress(selectedAccount.address);
+
+          const tx = await builder.build();
+
+          const xcm = await tx.signAndSubmit(selectedAccount.polkadotSigner);
+          if (xcm.dispatchError) {
+            throw new Error(
+              `XCM transaction failed ${xcm.dispatchError.type}: ${JSON.stringify(xcm.dispatchError.value, null, 2)}`,
+            );
+          }
+
+          await builder.disconnect();
+
+          toast.success(
+            `XCM transaction sent: https://assethub-polkadot.subscan.io/extrinsic/${xcm.txHash}`,
             {
               id: toastId,
             },
@@ -168,64 +261,10 @@ export function useTransactions() {
           toast.error(`Failed to sign xcm transaction: ${err.message}`, {
             id: toastId,
           });
-          void sendMessage({
-            role: "assistant",
-            parts: [
-              {
-                type: "text",
-                text: `Failed to sign xcm transaction: ${err.message}`,
-              },
-            ],
-          });
         }
       }
     },
-    [selectedAccount, activeChain],
-  );
-
-  const sendXcmStablecoinTransaction = useCallback(
-    async ({
-      from,
-      to,
-      amount,
-      id,
-      address,
-    }: {
-      from: TNodeDotKsmWithRelayChains;
-      to: TNodeWithRelayChains;
-      amount: string;
-      id: TCurrency;
-      address: string;
-    }): Promise<{ success: boolean; message: string }> => {
-      if (selectedAccount) {
-        try {
-          const tx = await Builder()
-            .from(from)
-            .to(to)
-            .currency({ id: id, amount: amount })
-            .address(address)
-            .build();
-          const xcm = await tx.signAndSubmit(selectedAccount.polkadotSigner);
-
-          return {
-            success: true,
-            message: `https://${activeChain.name.toLowerCase()}.subscan.io/extrinsic/${xcm.txHash}`,
-          };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return {
-            success: false,
-            message: `Failed to send xcm transaction: ${err.message}`,
-          };
-        }
-      }
-
-      return {
-        success: false,
-        message: "Selected account is not available.",
-      };
-    },
-    [selectedAccount, activeChain],
+    [selectedAccount],
   );
 
   return { sendTransaction, sendXcmTransaction, sendXcmStablecoinTransaction };

@@ -41,6 +41,15 @@ export interface XcmTransaction {
   symbol: string;
 }
 
+export interface XcmStablecoinTransaction {
+  src: TNodeDotKsmWithRelayChains;
+  dst: TNodeDotKsmWithRelayChains;
+  amount: number;
+  symbol: "USDT" | "USDC";
+  id: number;
+  recipient: string;
+}
+
 export interface Bond {
   value: number;
   payee: "Staked" | "Stash" | "Controller" | "Account" | "None";

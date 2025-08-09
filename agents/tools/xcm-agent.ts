@@ -1,6 +1,6 @@
-import { SYMBOL_TO_RELAY_CHAIN, TOKEN_DECIMALS } from "@/constants/chains";
+import { SYMBOL_TO_RELAY_CHAIN } from "@/constants/chains";
 import { getNodeName, isAssetSupported } from "@/lib/paraspell";
-import { convertAmountToPlancks, isValidSS58Address } from "@/lib/utils";
+import { isValidEthereumAddress, isValidSS58Address } from "@/lib/utils";
 import {
   hasSupportForAsset,
   NODES_WITH_RELAY_CHAINS,
@@ -125,7 +125,7 @@ const xcmAgent = tool({
 const xcmStablecoinFromAssetHub = tool({
   name: "xcmStablecoinFromAssetHub",
   description:
-    "This tool is used to send or teleport stablecoins only from AssetHub to another polkadot-compatible network/chain (Hydration or Moonbeam). Always use ask for receipient wallet address to teleport to.",
+    "This tool is used to send or teleport stablecoins (USDT or USDC).",
   inputSchema: z.object({
     src: z.string().describe("The source network/chain to teleport from."),
     dst: z.string().describe("The destination network/chain to teleport to."),
@@ -133,55 +133,98 @@ const xcmStablecoinFromAssetHub = tool({
     symbol: z
       .enum(["USDT", "USDC"])
       .describe("The symbol of the stablecoin to transfer."),
-    address: z.string().describe("A wallet address to teleport to."),
+    recipient: z.string().describe("The recipient address to transfer to."),
   }),
   outputSchema: z.object({
     tx: z
       .object({
         src: z.enum(NODES_WITH_RELAY_CHAINS),
         dst: z.enum(NODES_WITH_RELAY_CHAINS),
-        amount: z.string(),
+        amount: z.number(),
+        symbol: z.enum(["USDT", "USDC"]),
         id: z.number(),
+        recipient: z.string(),
       })
       .optional(),
-    message: z.string(),
+    message: z.string().optional(),
   }),
   // eslint-disable-next-line @typescript-eslint/require-await
-  execute: async ({ src, dst, amount, symbol, address }) => {
-    if (
-      (src === "AssetHub" || src === "Polkadot Asset Hub") &&
-      dst === "Hydration"
-    ) {
+  execute: async ({ src, dst, amount, symbol, recipient }) => {
+    if (src.includes(" Asset Hub")) {
+      const prefix = src.split(" Asset Hub")[0];
+      if (prefix !== SYMBOL_TO_RELAY_CHAIN.DOT) {
+        return {
+          message: `${src} cannot be used to teleport ${symbol}.`,
+        };
+      }
+      src = "AssetHub";
+    }
+
+    if (!recipient) {
       return {
-        message: `Teleporting ${String(amount)} ${symbol} tokens from AssetHub to Moonbeam, Hydration.`,
-        tx: {
-          src: "AssetHubPolkadot",
-          dst: "Hydration",
-          amount: convertAmountToPlancks(amount, TOKEN_DECIMALS[symbol]),
-          id: 1984,
-          address,
-        },
+        message: "Please provide a wallet address to teleport to.",
       };
     }
 
-    if (
-      (src === "AssetHub" || src === "Polkadot Asset Hub") &&
-      dst === "Moonbeam"
-    ) {
+    try {
+      const srcNodeName = getNodeName({ name: src, symbol: "DOT" });
+      const dstNodeName = getNodeName({ name: dst, symbol: "DOT" });
+
+      if (!srcNodeName) {
+        return {
+          message: `Invalid source chain for ${symbol} transfer.`,
+        };
+      }
+
+      if (!dstNodeName) {
+        return {
+          message: `Invalid destination chain for ${symbol} transfer.`,
+        };
+      }
+
+      if (srcNodeName !== "AssetHubPolkadot") {
+        return {
+          message: `${src} cannot be used to teleport ${symbol}.`,
+        };
+      }
+
+      if (dstNodeName !== "Hydration" && dstNodeName !== "Moonbeam") {
+        return {
+          message: `${dst} cannot be used to teleport ${symbol}.`,
+        };
+      }
+
+      const isEthereum = dstNodeName === "Moonbeam";
+
+      if (!isEthereum && !isValidSS58Address(recipient)) {
+        return {
+          message: `The provided recipient address is not valid SS58 address. ${recipient}`,
+        };
+      }
+
+      if (isEthereum && !isValidEthereumAddress(recipient)) {
+        return {
+          message: `The provided recipient address is not valid Ethereum address. ${recipient}`,
+        };
+      }
+
       return {
-        message: `Teleporting ${String(amount)} ${symbol} tokens from AssetHub to Moonbeam.`,
         tx: {
-          src: "AssetHubPolkadot",
-          dst: "Moonbeam",
-          amount: convertAmountToPlancks(amount, TOKEN_DECIMALS[symbol]),
-          id: 1984,
-          address,
+          src: srcNodeName,
+          dst: dstNodeName,
+          amount,
+          recipient,
+          symbol,
+          id: symbol === "USDT" ? 1984 : 1337,
         },
+        message: `Teleport of ${amount.toFixed(3)} ${symbol} from ${src} to ${dst} has been prepared. Sign and submit the transaction to confirm the teleport.`,
+      };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return {
+        message: `Failed to prepare transfer: ${err.message}`,
       };
     }
-    return {
-      message: `Invalid transfer from ${src} to ${dst} for stablecoin ${symbol}. Use src: AssetHub and dst: Hydration or Moonbeam.`,
-    };
   },
 });
 

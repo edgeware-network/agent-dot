@@ -61,7 +61,11 @@ export const CHAINS = {
     Nodle: "NodlePaseo",
     Zeitgeist: "ZeitgeistPaseo",
   },
-} as const;
+} as {
+  DOT: Record<string, string>;
+  WND: Record<string, string>;
+  PAS: Record<string, string>;
+};
 
 export const TOKENS = {
   DOT: "DOT",

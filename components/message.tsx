@@ -13,6 +13,7 @@ import {
   Transaction,
   Unbond,
   UnbondFromNominationPool,
+  XcmStablecoinTransaction,
   XcmTransaction,
 } from "@/types";
 import { UseChatHelpers } from "@ai-sdk/react";
@@ -42,7 +43,8 @@ function PurePreviewMessage({
     message.role === "assistant" && isLast && (isStreaming || !hasContent);
 
   const handleToolCallId = useRef(new Set<string>());
-  const { sendTransaction, sendXcmTransaction } = useTransactions();
+  const { sendTransaction, sendXcmTransaction, sendXcmStablecoinTransaction } =
+    useTransactions();
   const { bond, unbond, nominate } = useStaking();
   const { join, bondExtraToPool, unbondFromPool } = useNominationPools();
 
@@ -133,6 +135,32 @@ function PurePreviewMessage({
                       if (!tx) return <div key={toolCallId}></div>;
 
                       void sendXcmTransaction({
+                        ...tx,
+                        sendMessage,
+                      });
+
+                      return <div key={toolCallId}></div>;
+                    }
+                  }
+                  if (
+                    type === "tool-xcmStablecoinFromAssetHub" &&
+                    !handleToolCallId.current.has(
+                      `xcm-stablecoin-${part.toolCallId}`,
+                    )
+                  ) {
+                    handleToolCallId.current.add(
+                      `xcm-stablecoin-${part.toolCallId}`,
+                    );
+                    const { state, toolCallId } = part;
+
+                    if (state === "output-available") {
+                      const { tx } = part.output as {
+                        tx: XcmStablecoinTransaction | undefined;
+                      };
+
+                      if (!tx) return <div key={toolCallId}></div>;
+
+                      void sendXcmStablecoinTransaction({
                         ...tx,
                         sendMessage,
                       });
@@ -289,24 +317,6 @@ function PurePreviewMessage({
                       });
 
                       return <div key={toolCallId}></div>;
-                    }
-                  }
-                  if (type === "tool-xcmStablecoinFromAssetHub") {
-                    if (part.state === "input-available") {
-                      const input = part.input;
-                      return (
-                        <div key={part.toolCallId}>
-                          {JSON.stringify(input, null, 2)}
-                        </div>
-                      );
-                    }
-                    if (part.state === "output-available") {
-                      const output = part.output;
-                      return (
-                        <div key={part.toolCallId}>
-                          {JSON.stringify(output, null, 2)}
-                        </div>
-                      );
                     }
                   }
                 })}
