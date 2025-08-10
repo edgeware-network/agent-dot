@@ -57,6 +57,12 @@ export function useTransactions() {
             value,
           }).signAndSubmit(selectedAccount.polkadotSigner);
 
+          if (!tx.ok) {
+            throw new Error(
+              `${tx.dispatchError.type}: ${JSON.stringify(tx.dispatchError.value, null, 2)}`,
+            );
+          }
+
           toast.success(
             `Transaction sent: https://${activeChain.name.toLowerCase()}.subscan.io/extrinsic/${tx.txHash}`,
             {
@@ -76,17 +82,11 @@ export function useTransactions() {
         } catch (error: unknown) {
           const err = error as Error;
 
-          toast.error(`Failed to sign transaction: ${err.message}`, {
+          toast.error(`Failed to send transaction: ${err.message}`, {
             id: toastId,
           });
           void sendMessage({
-            role: "assistant",
-            parts: [
-              {
-                type: "text",
-                text: `Failed to sign transaction: ${err.message}`,
-              },
-            ],
+            text: `Failed to send transaction: ${err.message}`,
           });
         }
       }
@@ -143,6 +143,12 @@ export function useTransactions() {
 
           const xcm = await tx.signAndSubmit(selectedAccount.polkadotSigner);
 
+          if (!xcm.ok) {
+            throw new Error(
+              `${xcm.dispatchError.type}: ${JSON.stringify(xcm.dispatchError.value, null, 2)}`,
+            );
+          }
+
           // BUG: might not for some chains src naming is different eg. peoplepolkadot is people-polkadot
           toast.success(
             `XCM transaction sent: https://${src.toLowerCase()}.subscan.io/extrinsic/${xcm.txHash}`,
@@ -150,8 +156,6 @@ export function useTransactions() {
               id: toastId,
             },
           );
-
-          await builder.disconnect();
 
           void sendMessage(
             {
@@ -165,10 +169,11 @@ export function useTransactions() {
             },
             { metadata: { xcm } },
           );
+          await builder.disconnect();
         } catch (error: unknown) {
           const err = error as Error;
 
-          toast.error(`Failed to sign xcm transaction: ${err.message}`, {
+          toast.error(`Failed to teleport xcm transaction: ${err.message}`, {
             id: toastId,
           });
         }
@@ -228,13 +233,12 @@ export function useTransactions() {
           const tx = await builder.build();
 
           const xcm = await tx.signAndSubmit(selectedAccount.polkadotSigner);
-          if (xcm.dispatchError) {
+
+          if (!xcm.ok) {
             throw new Error(
-              `XCM transaction failed ${xcm.dispatchError.type}: ${JSON.stringify(xcm.dispatchError.value, null, 2)}`,
+              `${xcm.dispatchError.type}: ${JSON.stringify(xcm.dispatchError.value, null, 2)}`,
             );
           }
-
-          await builder.disconnect();
 
           toast.success(
             `XCM transaction sent: https://assethub-polkadot.subscan.io/extrinsic/${xcm.txHash}`,
@@ -249,16 +253,17 @@ export function useTransactions() {
               parts: [
                 {
                   type: "text",
-                  text: `XCM transaction sent: https://${src.toLowerCase()}.subscan.io/extrinsic/${xcm.txHash}`,
+                  text: `XCM transaction sent: https://assethub-polkadot.subscan.io/extrinsic/${xcm.txHash}`,
                 },
               ],
             },
             { metadata: { xcm } },
           );
+          await builder.disconnect();
         } catch (error: unknown) {
           const err = error as Error;
 
-          toast.error(`Failed to sign xcm transaction: ${err.message}`, {
+          toast.error(`Failed to teleport xcm transaction: ${err.message}`, {
             id: toastId,
           });
         }

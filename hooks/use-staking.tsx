@@ -62,6 +62,12 @@ export function useStaking() {
               selectedAccount.polkadotSigner,
             );
 
+            if (!tx.ok) {
+              throw new Error(
+                `${tx.dispatchError.type}: ${JSON.stringify(tx.dispatchError.value, null, 2)}`,
+              );
+            }
+
             toast.success(
               `Bond transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} to ${payee.type}: ${payee.value} was successfully submitted. Transaction hash: ${tx.txHash}`,
               {
@@ -89,6 +95,12 @@ export function useStaking() {
             const tx = await bondTx.signAndSubmit(
               selectedAccount.polkadotSigner,
             );
+
+            if (!tx.ok) {
+              throw new Error(
+                `${tx.dispatchError.type}: ${JSON.stringify(tx.dispatchError.value, null, 2)}`,
+              );
+            }
 
             toast.success(
               `Bond transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} to ${payee.type} was successfully submitted. Transaction hash: ${tx.txHash}`,
@@ -160,6 +172,12 @@ export function useStaking() {
           const tx = await api.tx.Staking.unbond({ value }).signAndSubmit(
             selectedAccount.polkadotSigner,
           );
+
+          if (!tx.ok) {
+            throw new Error(
+              `${tx.dispatchError.type}: ${JSON.stringify(tx.dispatchError.value, null, 2)}`,
+            );
+          }
 
           toast.success(
             `Unbond transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} was successfully submitted. Transaction hash: ${tx.txHash}`,
