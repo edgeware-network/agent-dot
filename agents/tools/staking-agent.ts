@@ -22,6 +22,7 @@ export const bondAgent = tool({
       .describe(
         "The address of the controller account on the respective network. This account will be used to sign staking-related transactions like nominating validators, changing bond amount, or claiming rewards. It should have a small transferable balance for transaction fees.",
       ),
+    network: z.string().describe("The name of the active network/chain."),
     value: z
       .number()
       .describe(
@@ -64,9 +65,31 @@ export const bondAgent = tool({
     tokenSymbol,
     payee,
     rewardAccount,
+    network,
   }) => {
-    const network = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
+    const chain = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
+
     try {
+      if (
+        chain !== network &&
+        ["polkadot", "kusama", "westend", "paseo"].includes(
+          network.toLowerCase(),
+        )
+      ) {
+        return {
+          message: `${network} is a relay chain and cannot be used for staking ${tokenSymbol}.`,
+        };
+      }
+      if (
+        chain !== network &&
+        !["polkadot", "kusama", "westend", "paseo"].includes(
+          network.toLowerCase(),
+        )
+      ) {
+        return {
+          message: `${network} is a system chain and cannot be used for staking ${tokenSymbol}.`,
+        };
+      }
       if (payee === "Account") {
         if (!rewardAccount) {
           return {
@@ -123,6 +146,7 @@ export const nominateAgent = tool({
   description:
     "Nominate a list of validators to stake tokens with on a network within the Polkadot ecosystem (e.g., Polkadot, Kusama, Westend, Paseo). This action registers your intention to stake with specific validators and is essential for earning staking rewards. The maximum number of nominators varies by network.",
   inputSchema: z.object({
+    network: z.string().describe("The name of active network/chain."),
     controllerAccount: z
       .string()
       .describe(
@@ -151,8 +175,8 @@ export const nominateAgent = tool({
     message: z.string(),
   }),
   // eslint-disable-next-line @typescript-eslint/require-await
-  execute: async ({ controllerAccount, targets, tokenSymbol }) => {
-    const network = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
+  execute: async ({ controllerAccount, targets, tokenSymbol, network }) => {
+    const chain = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
     const maxValidators = MAX_NOMINATIONS[tokenSymbol] || 16;
 
     if (!controllerAccount) {
@@ -180,6 +204,25 @@ export const nominateAgent = tool({
       };
     }
 
+    if (
+      chain !== network &&
+      ["polkadot", "kusama", "westend", "paseo"].includes(network.toLowerCase())
+    ) {
+      return {
+        message: `${network} is a relay chain and cannot be used for staking ${tokenSymbol}.`,
+      };
+    }
+    if (
+      chain !== network &&
+      !["polkadot", "kusama", "westend", "paseo"].includes(
+        network.toLowerCase(),
+      )
+    ) {
+      return {
+        message: `${network} is a system chain and cannot be used for staking ${tokenSymbol}.`,
+      };
+    }
+
     return {
       tx: {
         targets,
@@ -202,6 +245,7 @@ export const unbondAgent = tool({
       .describe(
         "The address of the controller account on the respective network, which is authorized to manage staking operations for the bonded funds.",
       ),
+    network: z.string().describe("The name of the active network/chain."),
     value: z
       .number()
       .describe(
@@ -224,8 +268,8 @@ export const unbondAgent = tool({
     message: z.string(),
   }),
   // eslint-disable-next-line @typescript-eslint/require-await
-  execute: async ({ controllerAccount, value, tokenSymbol }) => {
-    const network = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
+  execute: async ({ controllerAccount, value, tokenSymbol, network }) => {
+    const chain = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
     const unbondingDays = UNBONDING_PERIOD_DAYS_MAP[tokenSymbol] || 28;
 
     if (value <= 0) {
@@ -243,6 +287,25 @@ export const unbondAgent = tool({
     if (!isValidSS58Address(controllerAccount)) {
       return {
         message: `The provided address is not valid SS58 address. ${controllerAccount}`,
+      };
+    }
+
+    if (
+      chain !== network &&
+      ["polkadot", "kusama", "westend", "paseo"].includes(network.toLowerCase())
+    ) {
+      return {
+        message: `${network} is a relay chain and cannot be used for staking ${tokenSymbol}.`,
+      };
+    }
+    if (
+      chain !== network &&
+      !["polkadot", "kusama", "westend", "paseo"].includes(
+        network.toLowerCase(),
+      )
+    ) {
+      return {
+        message: `${network} is a system chain and cannot be used for staking ${tokenSymbol}.`,
       };
     }
 

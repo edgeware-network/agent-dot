@@ -11,6 +11,7 @@ export const joinNominationPoolsAgent = tool({
   description:
     "Join an existing nomination pool on a network within the Polkadot ecosystem (e.g., Polkadot, Kusama, Westend, Paseo) by bonding a specified amount of tokens. You will receive staking rewards proportionally from the pool. Note: You can only be a member of one pool at a time. A network-specific minimum bond amount is required to join a pool, and you need to ensure your account maintains its existential deposit plus transaction fees.",
   inputSchema: z.object({
+    network: z.string().describe("The name of the active network/chain."),
     senderAddress: z
       .string()
       .describe(
@@ -47,19 +48,38 @@ export const joinNominationPoolsAgent = tool({
   }),
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  execute: async ({ senderAddress, amount, poolId, tokenSymbol }) => {
-    const network = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
+  execute: async ({ senderAddress, amount, poolId, tokenSymbol, network }) => {
+    const chain = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
     const minBondAmount = MIN_POOL_BOND_AMOUNT[tokenSymbol] || 1;
 
     if (amount < minBondAmount) {
       return {
-        message: `The minimum bond amount for joining a pool on ${network} is ${minBondAmount.toFixed(2)} ${tokenSymbol}.`,
+        message: `The minimum bond amount for joining a pool on ${chain} is ${minBondAmount.toFixed(2)} ${tokenSymbol}.`,
       };
     }
 
     if (!poolId) {
       return {
         message: "Please provide a valid pool ID.",
+      };
+    }
+
+    if (
+      chain !== network &&
+      ["polkadot", "kusama", "westend", "paseo"].includes(network.toLowerCase())
+    ) {
+      return {
+        message: `${network} is a relay chain and cannot be used for staking ${tokenSymbol}.`,
+      };
+    }
+    if (
+      chain !== network &&
+      !["polkadot", "kusama", "westend", "paseo"].includes(
+        network.toLowerCase(),
+      )
+    ) {
+      return {
+        message: `${network} is a system chain and cannot be used for staking ${tokenSymbol}.`,
       };
     }
 
@@ -110,6 +130,7 @@ export const bondExtraNominationPoolsAgent = tool({
   description:
     "Add more tokens to your existing bonded stake in a nomination pool on a network within the Polkadot ecosystem (e.g., Polkadot, Kusama, Westend, Paseo). You can either bond additional tokens from your account's free balance or re-stake your accumulated (unclaimed) rewards.",
   inputSchema: z.object({
+    network: z.string().describe("The name of the active network/chain."),
     memberAddress: z
       .string()
       .describe(
@@ -130,8 +151,27 @@ export const bondExtraNominationPoolsAgent = tool({
   }),
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  execute: async ({ memberAddress, extra, tokenSymbol }) => {
-    const network = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
+  execute: async ({ memberAddress, extra, tokenSymbol, network }) => {
+    const chain = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
+
+    if (
+      chain !== network &&
+      ["polkadot", "kusama", "westend", "paseo"].includes(network.toLowerCase())
+    ) {
+      return {
+        message: `${network} is a relay chain and cannot be used for staking ${tokenSymbol}.`,
+      };
+    }
+    if (
+      chain !== network &&
+      !["polkadot", "kusama", "westend", "paseo"].includes(
+        network.toLowerCase(),
+      )
+    ) {
+      return {
+        message: `${network} is a system chain and cannot be used for staking ${tokenSymbol}.`,
+      };
+    }
 
     if (extra.type === "FreeBalance" && extra.amount) {
       if (extra.amount <= 0) {
@@ -170,6 +210,7 @@ export const unbondFromNominationPoolsAgent = tool({
   description:
     "Initiate the unbonding process for a specified amount of tokens (referred to as 'unbonding points') from a nomination pool you are currently a member of, on a network within the Polkadot ecosystem (e.g., Polkadot, Kusama, Westend, Paseo). The unbonded funds will become available for withdrawal after a network-specific unbonding period.",
   inputSchema: z.object({
+    network: z.string().describe("The name of the active network/chain."),
     memberAddress: z
       .string()
       .describe(
@@ -199,9 +240,27 @@ export const unbondFromNominationPoolsAgent = tool({
   }),
 
   // eslint-disable-next-line @typescript-eslint/require-await
-  execute: async ({ memberAddress, unbondingPoints, tokenSymbol }) => {
-    const network = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
+  execute: async ({ memberAddress, unbondingPoints, tokenSymbol, network }) => {
+    const chain = SYMBOL_TO_RELAY_CHAIN[tokenSymbol];
     const unbondingDays = UNBONDING_PERIOD_DAYS_MAP[tokenSymbol] || 28;
+    if (
+      chain !== network &&
+      ["polkadot", "kusama", "westend", "paseo"].includes(network.toLowerCase())
+    ) {
+      return {
+        message: `${network} is a relay chain and cannot be used for staking ${tokenSymbol}.`,
+      };
+    }
+    if (
+      chain !== network &&
+      !["polkadot", "kusama", "westend", "paseo"].includes(
+        network.toLowerCase(),
+      )
+    ) {
+      return {
+        message: `${network} is a system chain and cannot be used for staking ${tokenSymbol}.`,
+      };
+    }
 
     if (unbondingPoints <= 0) {
       return {
