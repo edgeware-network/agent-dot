@@ -103,7 +103,7 @@ export const chainConfig: ChainConfig[] = [
   },
   {
     key: "polkadot_asset_hub",
-    name: "Polkadot Asset Hub",
+    name: "Polkadot AssetHub",
     descriptors: dot_asset_hub,
     color: "#86E62A",
     endpoints: [
@@ -117,7 +117,7 @@ export const chainConfig: ChainConfig[] = [
   },
   {
     key: "paseo_asset_hub",
-    name: "Paseo Asset Hub",
+    name: "Paseo AssetHub",
     descriptors: pas_asset_hub,
     color: "#77BB77",
     endpoints: [
@@ -131,7 +131,7 @@ export const chainConfig: ChainConfig[] = [
   },
   {
     key: "westend_asset_hub",
-    name: "Westend Asset Hub",
+    name: "Westend AssetHub",
     color: "#77BB77",
     descriptors: wnd_asset_hub,
     endpoints: [

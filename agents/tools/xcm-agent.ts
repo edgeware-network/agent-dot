@@ -1,7 +1,7 @@
-import { SYMBOL_TO_RELAY_CHAIN } from "@/constants/chains";
 import { getNodeName, isAssetSupported } from "@/lib/paraspell";
 import { isValidEthereumAddress, isValidSS58Address } from "@/lib/utils";
 import {
+  convertSs58,
   hasSupportForAsset,
   NODES_WITH_RELAY_CHAINS,
   NODES_WITH_RELAY_CHAINS_DOT_KSM,
@@ -26,7 +26,7 @@ const getAvailableRelayChains = tool({
 const xcmAgent = tool({
   name: "xcmAgent",
   description:
-    "Prepare and confirm an XCM transaction to teleport tokens on the Polkadot network.",
+    "Prepare and confirm an XCM transaction to teleport tokens on the Polkadot, Westend and Paseo network.",
   inputSchema: z.object({
     src: z.string().describe("The source network/chain to teleport from."),
     dst: z.string().describe("The destination network/chain to teleport to."),
@@ -34,10 +34,7 @@ const xcmAgent = tool({
     symbol: z
       .enum(["DOT", "WND", "PAS"])
       .describe("The symbol of the token to teleport."),
-    sender: z
-      .string()
-      .describe("A wallet address to teleport from.")
-      .optional(),
+    sender: z.string().describe("A wallet address to teleport from."),
   }),
   outputSchema: z.object({
     tx: z
@@ -53,32 +50,9 @@ const xcmAgent = tool({
   }),
   // eslint-disable-next-line @typescript-eslint/require-await
   execute: async ({ src, dst, amount, symbol, sender }) => {
-    // currently active system chain can have prefix polkadot, westend, or paseo so we need to remove it
-    if (src.includes(" Asset Hub")) {
-      const prefix = src.split(" Asset Hub")[0];
-      if (prefix !== SYMBOL_TO_RELAY_CHAIN[symbol]) {
-        return {
-          message: `Teleport ${symbol} cannot be done from ${src} to ${dst}.`,
-        };
-      }
-      src = "AssetHub";
-    }
-
-    if (!sender) {
-      return {
-        message: "Please provide a wallet address to teleport from.",
-      };
-    }
-
     try {
       const srcNodeName = getNodeName({ name: src, symbol });
       const dstNodeName = getNodeName({ name: dst, symbol });
-
-      if (!isValidSS58Address(sender)) {
-        return {
-          message: `The provided address is not valid SS58 address. ${sender}`,
-        };
-      }
 
       if (!srcNodeName || !dstNodeName) {
         return {
@@ -111,7 +85,16 @@ const xcmAgent = tool({
           sender,
           symbol,
         },
-        message: `Teleport of ${amount.toFixed(3)} ${symbol} from ${src} to ${dst} has been prepared. Sign and submit the transaction to confirm the teleport.`,
+        message: `
+        Summary
+        ---
+        Source: ${srcNodeName}
+        Destination: ${dstNodeName}
+        Amount: ${amount.toFixed(3)} ${symbol}
+        Sender: ${sender}
+        Recipient: ${convertSs58(sender, dstNodeName)}
+        ---
+        Teleport of ${amount.toFixed(3)} ${symbol} from ${src} to ${dst} has been prepared. Sign and submit the transaction to confirm the teleport.`,
       };
     } catch (error) {
       const err = error as Error;
@@ -150,16 +133,6 @@ const xcmStablecoinFromAssetHub = tool({
   }),
   // eslint-disable-next-line @typescript-eslint/require-await
   execute: async ({ src, dst, amount, symbol, recipient }) => {
-    if (src.includes(" Asset Hub")) {
-      const prefix = src.split(" Asset Hub")[0];
-      if (prefix !== SYMBOL_TO_RELAY_CHAIN.DOT) {
-        return {
-          message: `${src} cannot be used to teleport ${symbol}.`,
-        };
-      }
-      src = "AssetHub";
-    }
-
     if (!recipient) {
       return {
         message: "Please provide a wallet address to teleport to.",
@@ -217,7 +190,15 @@ const xcmStablecoinFromAssetHub = tool({
           symbol,
           id: symbol === "USDT" ? 1984 : 1337,
         },
-        message: `Teleport of ${amount.toFixed(3)} ${symbol} from ${src} to ${dst} has been prepared. Sign and submit the transaction to confirm the teleport.`,
+        message: `
+        Summary
+        ---
+        Source: ${srcNodeName}
+        Destination: ${dstNodeName}
+        Amount: ${amount.toFixed(3)} ${symbol}
+        Recipient: ${recipient}
+        ---
+        Teleport of ${amount.toFixed(3)} ${symbol} from ${src} to ${dst} has been prepared. Sign and submit the transaction to confirm the teleport.`,
       };
     } catch (error: unknown) {
       const err = error as Error;
