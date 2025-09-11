@@ -101,6 +101,7 @@ export function useTransactions() {
       amount,
       symbol,
       sender,
+      recipient,
       sendMessage,
     }: {
       src: TNodeDotKsmWithRelayChains;
@@ -108,6 +109,7 @@ export function useTransactions() {
       amount: number;
       symbol: string;
       sender: string;
+      recipient: string;
       sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
     }) => {
       if (!selectedAccount) {
@@ -137,7 +139,8 @@ export function useTransactions() {
             .to(dst)
             .currency({ symbol: symbol, amount: amountInPlancks })
             .address(convertSs58(sender, dst))
-            .senderAddress(sender);
+            .senderAddress(sender)
+            .address(recipient);
 
           const tx = await builder.build();
 

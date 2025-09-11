@@ -18,6 +18,7 @@ import {
 } from "@/types";
 import { UIMessage, UseChatHelpers } from "@ai-sdk/react";
 import { SS58String } from "polkadot-api";
+import { getSupportedXcm } from "./paraspell";
 
 export async function onChatToolCall({
   apiRef,
@@ -196,6 +197,29 @@ export async function onChatToolCall({
       tool: toolCall.toolName,
       toolCallId: toolCall.toolCallId,
       output: JSON.stringify(val_addrs),
+    });
+  }
+
+  if (toolCall.toolName === "getSupportedXcmChains") {
+    const input = toolCall.input as {
+      chain: string;
+    };
+    if (!input.chain) {
+      const network = activeChainRef.current;
+
+      const supportedXcmChains = getSupportedXcm(network.name);
+      addToolResult({
+        tool: toolCall.toolName,
+        toolCallId: toolCall.toolCallId,
+        output: JSON.stringify(supportedXcmChains),
+      });
+    }
+
+    const supportedXcmChains = getSupportedXcm(input.chain);
+    addToolResult({
+      tool: toolCall.toolName,
+      toolCallId: toolCall.toolCallId,
+      output: JSON.stringify(supportedXcmChains),
     });
   }
 }

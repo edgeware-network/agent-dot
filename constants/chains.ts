@@ -2,38 +2,10 @@ export const CHAINS = {
   DOT: {
     Polkadot: "Polkadot",
     "Polkadot Assethub": "AssetHubPolkadot",
-    Acala: "Acala",
-    Ajuna: "Ajuna",
-    Astar: "Astar",
-    Bifrost: "BifrostPolkadot",
     "Polkadot BridgeHub": "BridgeHubPolkadot",
-    Centrifuge: "Centrifuge",
-    ComposableFinance: "ComposableFinance",
-    Darwinia: "Darwinia",
-    Hydration: "Hydration",
-    Interlay: "Interlay",
-    Heima: "Heima",
-    Jamton: "Jamton",
-    Moonbeam: "Moonbeam",
     "Polkadot Coretime": "CoretimePolkadot",
-    Laos: "Laos",
-    Robonomics: "RobonomicsPolkadot",
     "Polkadot People": "PeoplePolkadot",
-    Unique: "Unique",
-    Crust: "Crust",
-    Manta: "Manta",
-    Nodle: "Nodle",
-    NeuroWeb: "NeuroWeb",
-    Pendulum: "Pendulum",
-    Zeitgeist: "Zeitgeist",
     "Polkadot Collectives": "Collectives",
-    Phala: "Phala",
-    Subsocial: "Subsocial",
-    KiltSpiritnet: "KiltSpiritnet",
-    Curio: "Curio",
-    Mythos: "Mythos",
-    Peaq: "Peaq",
-    Polimec: "Polimec",
   },
   WND: {
     Westend: "Westend",
@@ -42,7 +14,6 @@ export const CHAINS = {
     "Westend Collectives": "CollectivesWestend",
     "Westend Coretime": "CoretimeWestend",
     "Westend People": "PeopleWestend",
-    Penpal: "Penpal",
   },
   PAS: {
     Paseo: "Paseo",
@@ -51,20 +22,72 @@ export const CHAINS = {
     "Paseo Coretime": "CoretimePaseo",
     PAssetHub: "PAssetHub",
     "Paseo People": "PeoplePaseo",
-    Ajuna: "AjunaPaseo",
-    Bifrost: "BifrostPaseo",
-    Heima: "HeimaPaseo",
-    Hydration: "HydrationPaseo",
-    Kilt: "KiltPaseo",
-    Laos: "LaosPaseo",
-    NeuroWeb: "NeuroWebPaseo",
-    Nodle: "NodlePaseo",
-    Zeitgeist: "ZeitgeistPaseo",
+  },
+  USDT: {
+    Hydration: "Hydration",
+    Moonbeam: "Moonbeam",
+  },
+  USDC: {
+    Hydration: "Hydration",
+    Moonbeam: "Moonbeam",
   },
 } as {
   DOT: Record<string, string>;
   WND: Record<string, string>;
   PAS: Record<string, string>;
+  USDT: Record<string, string>;
+  USDC: Record<string, string>;
+};
+
+export const teleportRulesByToken: Record<string, string[]> = {
+  polkadot: [
+    "Polkadot AssetHub",
+    "Polkadot BridgeHub",
+    "Polkadot Collectives",
+    "Polkadot Coretime",
+    "Polkadot People",
+  ],
+  "polkadot assethub": [
+    "Polkadot",
+    "Polkadot BridgeHub",
+    "Polkadot Collectives",
+    "Polkadot Coretime",
+    "Polkadot People",
+  ],
+  "polkadot bridgehub": ["Polkadot", "Polkadot AssetHub"],
+  "polkadot collectives": ["Polkadot", "Polkadot AssetHub"],
+  "polkadot coretime": ["Polkadot", "Polkadot AssetHub"],
+  "polkadot people": ["Polkadot", "Polkadot AssetHub"],
+  westend: [
+    "Westend Assethub",
+    "Westend Bridgehub",
+    "Westend Collectives",
+    "Westend Coretime",
+    "Westend People",
+  ],
+  "westend assethub": [
+    "Westend",
+    "Westend Bridgehub",
+    "Westend Collectives",
+    "Westend Coretime",
+    "Westend People",
+  ],
+  "westend bridgeHub": ["Westend", "Westend AssetHub"],
+  "westend collectives": ["Westend", "Westend AssetHub"],
+  "westend coretime": ["Westend", "Westend AssetHub"],
+  "westend people": ["Westend", "Westend AssetHub"],
+  paseo: [
+    "Paseo AssetHub",
+    "Paseo BridgeHub",
+    "PAssetHub",
+    "Paseo People",
+    "Paseo Coretime",
+  ],
+  "paseo assethub": ["Paseo", "Paseo BridgeHub", "PAssetHub"],
+  "paseo bridgehub": ["Paseo", "Paseo AssetHub"],
+  passethub: ["Paseo", "Paseo AssetHub"],
+  "Paseo People": ["Paseo"],
+  "Paseo Coretime": ["Paseo"],
 };
 
 export const TOKENS = {

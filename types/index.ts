@@ -38,6 +38,7 @@ export interface XcmTransaction {
   dst: TNodeDotKsmWithRelayChains;
   amount: number;
   sender: string;
+  recipient: string;
   symbol: string;
 }
 

@@ -17,6 +17,7 @@ import {
   unbondFromNominationPoolsAgent,
   xcmAgent,
   xcmStablecoinFromAssetHub,
+  getSupportedXcmChains,
 } from "@/agents/tools";
 import { openai } from "@ai-sdk/openai";
 import {
@@ -40,6 +41,7 @@ const tools: ToolSet = {
   setActiveNetwork: setActiveNetwork,
   transferAgent: transferAgent,
   getAvailableValidators: getAvailableValidators,
+  getSupportedXcmChains: getSupportedXcmChains,
   xcmAgent: xcmAgent,
   xcmStablecoinFromAssetHub: xcmStablecoinFromAssetHub,
   bondAgent: bondAgent,
@@ -64,7 +66,7 @@ export async function POST(req: Request) {
       },
       ...convertToModelMessages(messages),
     ],
-    stopWhen: stepCountIs(3), // stop after 3 steps to avoid RPM (requests per minute) limits breach on OpenAI free tier.
+    stopWhen: stepCountIs(4), // stop after 3 steps to avoid RPM (requests per minute) limits breach on OpenAI free tier.
     tools,
   });
 

@@ -1,4 +1,4 @@
-import { CHAINS } from "@/constants/chains";
+import { CHAINS, teleportRulesByToken } from "@/constants/chains";
 import { getSupportedAssets, TNodeDotKsmWithRelayChains } from "@paraspell/sdk";
 
 export function getNodeName({
@@ -37,4 +37,8 @@ export function isAssetSupported({
   const supportedAssets = assets.map((asset) => asset.symbol);
 
   return supportedAssets.includes(symbol);
+}
+
+export function getSupportedXcm(network: string) {
+  return teleportRulesByToken[network.toLowerCase()];
 }

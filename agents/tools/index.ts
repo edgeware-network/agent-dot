@@ -11,17 +11,16 @@ export {
 export { transferAgent } from "@/agents/tools/transfer-agent";
 
 export {
-  getAvailableRelayChains,
-  getAvailableSystemChains,
+  getSupportedXcmChains,
   xcmAgent,
   xcmStablecoinFromAssetHub,
 } from "@/agents/tools/xcm-agent";
 
 export {
   bondAgent,
+  getAvailableValidators,
   nominateAgent,
   unbondAgent,
-  getAvailableValidators,
 } from "@/agents/tools/staking-agent";
 
 export {

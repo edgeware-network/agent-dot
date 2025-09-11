@@ -9,24 +9,24 @@ import {
 import { tool } from "ai";
 import z from "zod";
 
-const getAvailableSystemChains = tool({
-  name: "getAvailableSystemChains",
+export const getSupportedXcmChains = tool({
+  name: "getSupportedXcmChains",
   description:
-    "Get the list of available system chains/networks for cross-chain transfers.",
-  inputSchema: z.object({}),
+    "Get the list of supported XCM chains for teleporting tokens for the active network.",
+  inputSchema: z.object({
+    chain: z
+      .string()
+      .describe(
+        "The name of the network/chain to get the list of supported XCM chains for.",
+      )
+      .optional(),
+  }),
 });
 
-const getAvailableRelayChains = tool({
-  name: "getAvailableRelayChains",
-  description:
-    "Get the list of available relay chains/networks for cross-chain transfers.",
-  inputSchema: z.object({}),
-});
-
-const xcmAgent = tool({
+export const xcmAgent = tool({
   name: "xcmAgent",
   description:
-    "Prepare and confirm an XCM transaction to teleport tokens on the Polkadot, Westend and Paseo network.",
+    "Prepare and confirm an XCM transaction to teleport tokens on the Polkadot, Westend and Paseo network. Teleportation can be done from same addresses i.e. sender and recipient are the same. or from different addresses. i.e. sender and recipient are different.",
   inputSchema: z.object({
     src: z.string().describe("The source network/chain to teleport from."),
     dst: z.string().describe("The destination network/chain to teleport to."),
@@ -35,6 +35,11 @@ const xcmAgent = tool({
       .enum(["DOT", "WND", "PAS"])
       .describe("The symbol of the token to teleport."),
     sender: z.string().describe("A wallet address to teleport from."),
+    recipient: z
+      .string()
+      .describe(
+        "A wallet address to teleport to. It's possible that sender and recipient can be the same.",
+      ),
   }),
   outputSchema: z.object({
     tx: z
@@ -44,12 +49,13 @@ const xcmAgent = tool({
         amount: z.number(),
         symbol: z.enum(["DOT", "WND", "PAS"]),
         sender: z.string(),
+        recipient: z.string(),
       })
       .optional(),
-    message: z.string().optional(),
+    message: z.string(),
   }),
   // eslint-disable-next-line @typescript-eslint/require-await
-  execute: async ({ src, dst, amount, symbol, sender }) => {
+  execute: async ({ src, dst, amount, symbol, sender, recipient }) => {
     try {
       const srcNodeName = getNodeName({ name: src, symbol });
       const dstNodeName = getNodeName({ name: dst, symbol });
@@ -57,6 +63,12 @@ const xcmAgent = tool({
       if (!srcNodeName || !dstNodeName) {
         return {
           message: "Invalid source or destination network/chain.",
+        };
+      }
+
+      if (!isValidSS58Address(sender)) {
+        return {
+          message: "Invalid sender address.",
         };
       }
 
@@ -77,12 +89,24 @@ const xcmAgent = tool({
           message: `Teleport of ${symbol} is not supported from ${src} to ${dst}.`,
         };
       }
+
+      const senderAddress = convertSs58(sender, srcNodeName);
+      const recipientAddress = convertSs58(recipient, dstNodeName);
+      // eslint-disable-next-line no-console
+      console.log({
+        senderAddress,
+        recipientAddress,
+        srcNodeName,
+        dstNodeName,
+      });
+
       return {
         tx: {
           src: srcNodeName,
           dst: dstNodeName,
           amount,
-          sender,
+          sender: senderAddress,
+          recipient: recipientAddress,
           symbol,
         },
         message: `
@@ -91,8 +115,8 @@ const xcmAgent = tool({
         Source: ${srcNodeName}
         Destination: ${dstNodeName}
         Amount: ${amount.toFixed(3)} ${symbol}
-        Sender: ${sender}
-        Recipient: ${convertSs58(sender, dstNodeName)}
+        Sender: ${senderAddress}
+        Recipient: ${recipientAddress}
         ---
         Teleport of ${amount.toFixed(3)} ${symbol} from ${src} to ${dst} has been prepared. Sign and submit the transaction to confirm the teleport.`,
       };
@@ -105,7 +129,7 @@ const xcmAgent = tool({
   },
 });
 
-const xcmStablecoinFromAssetHub = tool({
+export const xcmStablecoinFromAssetHub = tool({
   name: "xcmStablecoinFromAssetHub",
   description:
     "This tool is used to send or teleport stablecoins (USDT or USDC).",
@@ -208,10 +232,3 @@ const xcmStablecoinFromAssetHub = tool({
     }
   },
 });
-
-export {
-  getAvailableRelayChains,
-  getAvailableSystemChains,
-  xcmAgent,
-  xcmStablecoinFromAssetHub,
-};
