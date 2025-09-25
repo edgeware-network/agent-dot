@@ -89,7 +89,7 @@ export function LightClientApiProvider({
         const typedApi = lightClient.getTypedApi(chainConfig.descriptors);
         setActiveApi(typedApi);
         setActiveChain(chainConfig);
-
+        localStorage.setItem("selectedChain", chainConfig.name);
         setConnectionStatus({
           type: WsEvent.CONNECTED,
           uri: "via lightclient",

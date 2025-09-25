@@ -6,10 +6,17 @@ import { LightClientApiProvider } from "@/providers/light-client-provider";
 import { RpcApiProvider } from "./rpc-api-provider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  const storedChain =
+    typeof window !== "undefined"
+      ? chainConfig.find(
+          (chain) => chain.name === localStorage.getItem("selectedChain"),
+        )
+      : chainConfig[0];
+  const defaultChain = storedChain ?? chainConfig[0];
   return (
     <ExtensionProvider>
       <RpcApiProvider>
-        <LightClientApiProvider defaultChain={chainConfig[0]}>
+        <LightClientApiProvider defaultChain={defaultChain}>
           {children}
         </LightClientApiProvider>
       </RpcApiProvider>
