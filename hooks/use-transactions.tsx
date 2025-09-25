@@ -2,7 +2,7 @@
 
 import { TOKEN_DECIMALS } from "@/constants/chains";
 import { convertAmountToPlancks } from "@/lib/utils";
-import { ExtenstionContext } from "@/providers/extension-provider";
+import { ExtensionContext } from "@/providers/extension-provider";
 import { useLightClientApi } from "@/providers/light-client-provider";
 import { UIMessage, UseChatHelpers } from "@ai-sdk/react";
 import {
@@ -18,7 +18,7 @@ import { toast } from "sonner";
 
 export function useTransactions() {
   const { api, activeChain } = useLightClientApi();
-  const { selectedAccount } = use(ExtenstionContext);
+  const { selectedAccount } = use(ExtensionContext);
 
   const sendTransaction = useCallback(
     async ({

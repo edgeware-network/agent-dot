@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ViewNavigationProps } from "@/components/ui/multi-view-dialog";
 import { isMobile } from "@/lib/is-mobile";
 import { trimAddress } from "@/lib/utils";
-import { ExtenstionContext } from "@/providers/extension-provider";
+import { ExtensionContext } from "@/providers/extension-provider";
 import Image from "next/image";
 import { use } from "react";
 import { MdOutlineKeyboardDoubleArrowLeft } from "react-icons/md";
@@ -53,7 +53,7 @@ export default function ViewSelectAccount({ previous }: ViewNavigationProps) {
     setSelectedAccount,
     setIsWalletOpen,
     availableExtensions,
-  } = use(ExtenstionContext);
+  } = use(ExtensionContext);
 
   const systemWallets = dotWallets
     .filter((wallet) =>

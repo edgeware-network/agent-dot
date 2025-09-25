@@ -2,7 +2,7 @@
 
 import { StakingDescriptors } from "@/lib/polkadot-api";
 import { convertAmountToPlancks } from "@/lib/utils";
-import { ExtenstionContext } from "@/providers/extension-provider";
+import { ExtensionContext } from "@/providers/extension-provider";
 import { useRpcApi } from "@/providers/rpc-api-provider";
 import { UIMessage, UseChatHelpers } from "@ai-sdk/react";
 import { MultiAddress } from "@polkadot-api/descriptors";
@@ -11,7 +11,7 @@ import { toast } from "sonner";
 
 export function useStaking() {
   const { client, activeChain } = useRpcApi();
-  const { selectedAccount } = use(ExtenstionContext);
+  const { selectedAccount } = use(ExtensionContext);
 
   const bond = useCallback(
     async ({

@@ -2,7 +2,7 @@
 
 import { useSyncedRef } from "@/hooks/use-sync-ref";
 import { AvailableApis, ChainConfig } from "@/papi-config";
-import { ExtenstionContext } from "@/providers/extension-provider";
+import { ExtensionContext } from "@/providers/extension-provider";
 import { useLightClientApi } from "@/providers/light-client-provider";
 import { useRpcApi } from "@/providers/rpc-api-provider";
 import {
@@ -23,7 +23,7 @@ export function useRefObject() {
     selectedAccount,
     setSelectedAccount,
     selectedExtensions,
-  } = use(ExtenstionContext);
+  } = use(ExtensionContext);
 
   // refs to pass down to useChat
   const activeChainRef = useSyncedRef<ChainConfig>(activeChain);

@@ -5,7 +5,7 @@ import { DotWalletPlatform, dotWallets } from "@/components/account/wallets";
 import { Button } from "@/components/ui/button";
 import { ViewNavigationProps } from "@/components/ui/multi-view-dialog";
 import { isMobile } from "@/lib/is-mobile";
-import { ExtenstionContext } from "@/providers/extension-provider";
+import { ExtensionContext } from "@/providers/extension-provider";
 import { use } from "react";
 import { MdOutlineKeyboardDoubleArrowRight } from "react-icons/md";
 
@@ -14,7 +14,7 @@ import { toast } from "sonner";
 
 export default function ViewSelectWallet({ next }: ViewNavigationProps) {
   const { availableExtensions, selectedExtensions, onToggleExtension } =
-    use(ExtenstionContext);
+    use(ExtensionContext);
 
   const systemWallets = dotWallets
     .filter((wallet) =>

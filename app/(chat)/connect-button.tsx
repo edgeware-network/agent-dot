@@ -5,7 +5,7 @@ import { Identicon } from "@/components/identicon";
 import { Button } from "@/components/ui/button";
 import { DialogView, MultiViewDialog } from "@/components/ui/multi-view-dialog";
 import { trimAddress } from "@/lib/utils";
-import { ExtenstionContext } from "@/providers/extension-provider";
+import { ExtensionContext } from "@/providers/extension-provider";
 import { use } from "react";
 
 function Wallet({ address, name }: { address: string; name: string }) {
@@ -24,7 +24,7 @@ function Wallet({ address, name }: { address: string; name: string }) {
 }
 
 export default function ConnectButton() {
-  const { selectedAccount, selectedExtensions } = use(ExtenstionContext);
+  const { selectedAccount, selectedExtensions } = use(ExtensionContext);
 
   const hasConnectedAccounts = selectedExtensions.some((extension) =>
     extension.getAccounts().some((account) => account.address),

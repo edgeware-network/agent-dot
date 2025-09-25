@@ -134,7 +134,7 @@ const getJoinedInjectedExtensions = async (): Promise<string> => {
   return getInjectedExtensions().join(",");
 };
 
-export const ExtenstionContext = createContext<ExtensionContext>({
+export const ExtensionContext = createContext<ExtensionContext>({
   isInitializing: true,
   isWalletOpen: false,
   setIsWalletOpen: () => {
@@ -242,7 +242,7 @@ export function ExtensionProvider({ children }: { children: ReactNode }) {
   }, [selectedExtensions, restoreSelectedAccount]);
 
   return (
-    <ExtenstionContext.Provider
+    <ExtensionContext.Provider
       value={{
         isWalletOpen,
         setIsWalletOpen,
@@ -260,6 +260,6 @@ export function ExtensionProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-    </ExtenstionContext.Provider>
+    </ExtensionContext.Provider>
   );
 }
