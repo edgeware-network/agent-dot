@@ -79,7 +79,7 @@ export const nova: DotWallet = {
 };
 
 export const alephzero: DotWallet = {
-  id: "aleph-zero",
+  id: "aleph-zero-signer",
   name: "Aleph Zero Signer",
   platforms: [DotWalletPlatform.Browser],
   urls: {
@@ -89,7 +89,7 @@ export const alephzero: DotWallet = {
 };
 
 export const trust: DotWallet = {
-  id: "trust",
+  id: "trust-wallet",
   name: "Trust Wallet",
   platforms: [
     DotWalletPlatform.Browser,
