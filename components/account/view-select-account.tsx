@@ -32,7 +32,6 @@ function AccountInfo({
               alt={name}
               width={32}
               height={32}
-              priority
               className="h-4 w-4"
             />
           )}
@@ -53,6 +52,7 @@ export default function ViewSelectAccount({ previous }: ViewNavigationProps) {
     setSelectedAccount,
     setIsWalletOpen,
     availableExtensions,
+    refreshAllAccounts,
   } = use(ExtensionContext);
 
   const systemWallets = dotWallets
@@ -71,17 +71,30 @@ export default function ViewSelectAccount({ previous }: ViewNavigationProps) {
     );
   return (
     <div className="flex flex-col gap-2 p-2">
+      <div className="flex items-center justify-between px-2">
+        <span className="text-muted-foreground text-sm">
+          Connected Accounts
+        </span>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => void refreshAllAccounts()}
+          className="text-xs"
+        >
+          Refresh
+        </Button>
+      </div>
       <div className="flex max-h-[45vh] grow flex-col gap-2 overflow-y-auto px-2 sm:max-h-[70vh]">
-        {selectedExtensions.map((extension, index) => {
+        {selectedExtensions.map((extension) => {
           const logo = systemWallets.find(
             (wallet) => wallet.id === extension.name,
           )?.logoUrls[0];
           return (
-            <div key={index} className="flex flex-col gap-2">
-              {extension.getAccounts().map((account, index) => {
+            <div key={extension.name} className="flex flex-col gap-2">
+              {extension.getAccounts().map((account) => {
                 return (
                   <Button
-                    key={index}
+                    key={account.address}
                     className="font-manrope bg-background/10 border-border h-14 w-full cursor-pointer rounded-[0.6rem] border-2 p-2 hover:bg-[#252525]/50"
                     onClick={() => {
                       setSelectedAccount(account, extension);
