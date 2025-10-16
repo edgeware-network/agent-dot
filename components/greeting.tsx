@@ -34,7 +34,7 @@ export function Greeting() {
         transition={{ delay: 0.7 }}
         className="font-outfit mt-2 text-xl tracking-tight text-zinc-400"
       >
-        How can I help you with polkadot today?
+        How can I help you with Polkadot today?
       </motion.div>
     </div>
   );
