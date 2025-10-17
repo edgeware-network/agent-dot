@@ -17,11 +17,32 @@ import {
 import { ChainConfig, chainConfig } from "@/papi-config";
 import { useLightClientApi } from "@/providers/light-client-provider";
 import { useRpcApi } from "@/providers/rpc-api-provider";
+import Image from "next/image";
 import { WsEvent } from "polkadot-api/ws-provider/web";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BiLoaderCircle } from "react-icons/bi";
 import { TbAlertSquareRoundedFilled } from "react-icons/tb";
 import { toast } from "sonner";
+
+function ChainIcon({
+  icon,
+  fallbackIcon,
+}: {
+  icon: React.ReactNode;
+  fallbackIcon: React.ReactNode;
+}) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return fallbackIcon;
+  }
+
+  return icon;
+}
 
 export default function ChainSelectButton() {
   const { activeChain, setActiveChain, connectionStatus } = useLightClientApi();
@@ -57,7 +78,17 @@ export default function ChainSelectButton() {
 
       return (
         <Button className="size-9 cursor-pointer" variant="ghost" size="icon">
-          {activeChain.icon}
+          <ChainIcon
+            icon={activeChain.icon}
+            fallbackIcon={
+              <Image
+                src="/icons/polkadot.svg"
+                alt="Polkadot"
+                width={32}
+                height={32}
+              />
+            }
+          />
         </Button>
       );
     },
@@ -65,13 +96,15 @@ export default function ChainSelectButton() {
   );
 
   function handleActiveChain(chain: ChainConfig) {
-    (async () => {
-      await setActiveChain(chain);
-      setActiveApi(chain);
-    })().catch((err: unknown) => {
-      const error = err as Error;
-      toast.error(error.message);
-    });
+    void (async () => {
+      try {
+        await setActiveChain(chain);
+        setActiveApi(chain);
+      } catch (err: unknown) {
+        const error = err as Error;
+        toast.error(error.message);
+      }
+    })();
   }
 
   return (
@@ -102,7 +135,17 @@ export default function ChainSelectButton() {
               >
                 <div className="flex w-full cursor-pointer items-center justify-start gap-2">
                   <div className="flex h-8 w-8 items-center justify-center">
-                    {chain.icon}
+                    <ChainIcon
+                      icon={chain.icon}
+                      fallbackIcon={
+                        <Image
+                          src="/icons/polkadot.svg"
+                          alt="Polkadot"
+                          width={32}
+                          height={32}
+                        />
+                      }
+                    />
                   </div>
                   <span className="text-foreground font-poppins truncate text-sm font-medium">
                     {chain.name}

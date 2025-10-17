@@ -79,7 +79,6 @@ export default function ViewSelectWallet({ next }: ViewNavigationProps) {
                     alt={wallet.name}
                     width={24}
                     height={24}
-                    priority
                     sizes="24px"
                     className="h-6 w-6"
                   />
