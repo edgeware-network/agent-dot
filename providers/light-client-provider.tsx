@@ -38,8 +38,16 @@ export function LightClientApiProvider({
   children: React.ReactNode;
   defaultChain?: ChainConfig;
 }) {
+  const persistedChainName =
+    typeof window !== "undefined"
+      ? localStorage.getItem("selectedChain")
+      : null;
+  const initialChain = persistedChainName
+    ? (chainConfig.find((chain) => chain.name === persistedChainName) ??
+      defaultChain)
+    : defaultChain;
   const smoldotRef = useRef<Client | null>(null);
-  const [activeChain, setActiveChain] = useState<ChainConfig>(defaultChain);
+  const [activeChain, setActiveChain] = useState<ChainConfig>(initialChain);
   const [activeApi, setActiveApi] = useState<AvailableApis | null>(null);
   const [client, setClient] = useState<PolkadotClient | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<
@@ -61,6 +69,11 @@ export function LightClientApiProvider({
   const initializeClient = useCallback(
     async (chainConfig: ChainConfig) => {
       try {
+        if (smoldotRef.current) {
+          await smoldotRef.current.terminate();
+          smoldotRef.current = null;
+        }
+
         setConnectionStatus({
           type: WsEvent.CONNECTING,
           uri: "via lightclient",
@@ -99,13 +112,18 @@ export function LightClientApiProvider({
           type: WsEvent.ERROR,
           event: error,
         });
+        setActiveApi(null);
+        setClient(null);
+        toast.error(
+          `Failed to connect to ${chainConfig.name}: ${error instanceof Error ? error.message : "Unknown error"}`,
+        );
       }
     },
     [setClient, setActiveApi, setActiveChain, setConnectionStatus],
   );
 
   useEffect(() => {
-    initializeClient(defaultChain).catch((err: unknown) => {
+    initializeClient(initialChain).catch((err: unknown) => {
       const error = err as Error;
       setConnectionStatus({ type: WsEvent.ERROR, event: error });
       toast.error("Error connecting to chain: " + error.message);
@@ -127,7 +145,7 @@ export function LightClientApiProvider({
         toast.error("Error during light client shutdown: " + error.message);
       });
     };
-  }, [defaultChain, initializeClient]);
+  }, [initializeClient]);
 
   return (
     <LightClientApiContext.Provider

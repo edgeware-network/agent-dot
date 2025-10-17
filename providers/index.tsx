@@ -1,18 +1,22 @@
 "use client";
 
-import { chainConfig } from "@/papi-config";
+import { ChainConfig, chainConfig } from "@/papi-config";
 import { ExtensionProvider } from "@/providers/extension-provider";
 import { LightClientApiProvider } from "@/providers/light-client-provider";
+import { useEffect, useState } from "react";
 import { RpcApiProvider } from "./rpc-api-provider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const storedChain =
-    typeof window !== "undefined"
-      ? chainConfig.find(
-          (chain) => chain.name === localStorage.getItem("selectedChain"),
-        )
-      : chainConfig[0];
-  const defaultChain = storedChain ?? chainConfig[0];
+  const [defaultChain, setDefaultChain] = useState<ChainConfig>(chainConfig[0]);
+  useEffect(() => {
+    const storedChainName = localStorage.getItem("selectedChain");
+    if (storedChainName) {
+      const found = chainConfig.find((chain) => chain.name === storedChainName);
+      if (found) {
+        setDefaultChain(found);
+      }
+    }
+  }, []);
   return (
     <ExtensionProvider>
       <RpcApiProvider>
