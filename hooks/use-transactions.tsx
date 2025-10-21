@@ -7,9 +7,9 @@ import { useLightClientApi } from "@/providers/light-client-provider";
 import { UIMessage, UseChatHelpers } from "@ai-sdk/react";
 import {
   Builder,
+  TChain,
   TCurrency,
-  TNodeDotKsmWithRelayChains,
-  TNodeWithRelayChains,
+  TSubstrateChain,
   convertSs58,
 } from "@paraspell/sdk";
 import { MultiAddress } from "@polkadot-api/descriptors";
@@ -101,13 +101,15 @@ export function useTransactions() {
       amount,
       symbol,
       sender,
+      recipient,
       sendMessage,
     }: {
-      src: TNodeDotKsmWithRelayChains;
-      dst: TNodeDotKsmWithRelayChains;
+      src: TSubstrateChain;
+      dst: TSubstrateChain;
       amount: number;
       symbol: string;
       sender: string;
+      recipient?: string;
       sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
     }) => {
       if (!selectedAccount) {
@@ -136,7 +138,7 @@ export function useTransactions() {
             .from(src)
             .to(dst)
             .currency({ symbol: symbol, amount: amountInPlancks })
-            .address(convertSs58(sender, dst))
+            .address(recipient ?? convertSs58(sender, dst))
             .senderAddress(sender);
 
           const tx = await builder.build();
@@ -192,8 +194,8 @@ export function useTransactions() {
       recipient,
       sendMessage,
     }: {
-      src: TNodeDotKsmWithRelayChains;
-      dst: TNodeWithRelayChains;
+      src: TSubstrateChain;
+      dst: TChain;
       amount: number;
       id: TCurrency;
       symbol: "USDT" | "USDC";

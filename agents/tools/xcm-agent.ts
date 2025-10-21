@@ -3,8 +3,7 @@ import { isValidEthereumAddress, isValidSS58Address } from "@/lib/utils";
 import {
   convertSs58,
   hasSupportForAsset,
-  NODES_WITH_RELAY_CHAINS,
-  NODES_WITH_RELAY_CHAINS_DOT_KSM,
+  SUBSTRATE_CHAINS,
 } from "@paraspell/sdk";
 import { tool } from "ai";
 import z from "zod";
@@ -35,21 +34,28 @@ const xcmAgent = tool({
       .enum(["DOT", "WND", "PAS"])
       .describe("The symbol of the token to teleport."),
     sender: z.string().describe("A wallet address to teleport from."),
+    recipient: z
+      .string()
+      .optional()
+      .describe(
+        "An optional recipient wallet address. If not provided, the sender address will be used.",
+      ),
   }),
   outputSchema: z.object({
     tx: z
       .object({
-        src: z.enum(NODES_WITH_RELAY_CHAINS_DOT_KSM),
-        dst: z.enum(NODES_WITH_RELAY_CHAINS_DOT_KSM),
+        src: z.enum(SUBSTRATE_CHAINS),
+        dst: z.enum(SUBSTRATE_CHAINS),
         amount: z.number(),
         symbol: z.enum(["DOT", "WND", "PAS"]),
         sender: z.string(),
+        recipient: z.string(),
       })
       .optional(),
     message: z.string().optional(),
   }),
   // eslint-disable-next-line @typescript-eslint/require-await
-  execute: async ({ src, dst, amount, symbol, sender }) => {
+  execute: async ({ src, dst, amount, symbol, sender, recipient }) => {
     try {
       const srcNodeName = getNodeName({ name: src, symbol });
       const dstNodeName = getNodeName({ name: dst, symbol });
@@ -77,6 +83,9 @@ const xcmAgent = tool({
           message: `Teleport of ${symbol} is not supported from ${src} to ${dst}.`,
         };
       }
+
+      const recipientAddress = recipient ?? convertSs58(sender, dstNodeName);
+
       return {
         tx: {
           src: srcNodeName,
@@ -84,6 +93,7 @@ const xcmAgent = tool({
           amount,
           sender,
           symbol,
+          recipient: recipientAddress,
         },
         message: `
         Summary
@@ -92,7 +102,7 @@ const xcmAgent = tool({
         Destination: ${dstNodeName}
         Amount: ${amount.toFixed(3)} ${symbol}
         Sender: ${sender}
-        Recipient: ${convertSs58(sender, dstNodeName)}
+        Recipient: ${recipientAddress}
         ---
         Teleport of ${amount.toFixed(3)} ${symbol} from ${src} to ${dst} has been prepared. Sign and submit the transaction to confirm the teleport.`,
       };
@@ -121,8 +131,8 @@ const xcmStablecoinFromAssetHub = tool({
   outputSchema: z.object({
     tx: z
       .object({
-        src: z.enum(NODES_WITH_RELAY_CHAINS),
-        dst: z.enum(NODES_WITH_RELAY_CHAINS),
+        src: z.enum(SUBSTRATE_CHAINS),
+        dst: z.enum(SUBSTRATE_CHAINS),
         amount: z.number(),
         symbol: z.enum(["USDT", "USDC"]),
         id: z.number(),

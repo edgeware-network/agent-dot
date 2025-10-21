@@ -1,5 +1,5 @@
 import { AvailableApis, ChainConfig } from "@/papi-config";
-import { TNodeDotKsmWithRelayChains } from "@paraspell/sdk";
+import { TSubstrateChain } from "@paraspell/sdk";
 import { PolkadotClient } from "polkadot-api";
 import {
   InjectedExtension,
@@ -34,16 +34,16 @@ export interface Transaction {
 }
 
 export interface XcmTransaction {
-  src: TNodeDotKsmWithRelayChains;
-  dst: TNodeDotKsmWithRelayChains;
+  src: TSubstrateChain;
+  dst: TSubstrateChain;
   amount: number;
   sender: string;
   symbol: string;
 }
 
 export interface XcmStablecoinTransaction {
-  src: TNodeDotKsmWithRelayChains;
-  dst: TNodeDotKsmWithRelayChains;
+  src: TSubstrateChain;
+  dst: TSubstrateChain;
   amount: number;
   symbol: "USDT" | "USDC";
   id: number;

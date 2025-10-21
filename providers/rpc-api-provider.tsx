@@ -2,11 +2,8 @@
 
 import { createClient, PolkadotClient } from "polkadot-api";
 import { withPolkadotSdkCompat } from "polkadot-api/polkadot-sdk-compat";
-import {
-  getWsProvider,
-  StatusChange,
-  WsJsonRpcProvider,
-} from "polkadot-api/ws-provider/web";
+import { getWsProvider } from "polkadot-api/ws-provider";
+import { StatusChange, WsJsonRpcProvider } from "polkadot-api/ws-provider/web";
 
 import {
   chainConfig,
@@ -49,7 +46,9 @@ export function RpcApiProvider({ children }: { children: React.ReactNode }) {
       if (!wsEndpoint) throw new Error("No valid WebSocket endpoint found");
 
       const endpoints = [wsEndpoint, ...newChain.endpoints.slice(1)];
-      const _wsProvider = getWsProvider(endpoints, setConnectionStatus);
+      const _wsProvider = getWsProvider(endpoints, {
+        onStatusChanged: setConnectionStatus,
+      });
 
       wsProviderRef.current = _wsProvider;
 

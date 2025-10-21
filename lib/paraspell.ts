@@ -1,5 +1,5 @@
 import { CHAINS } from "@/constants/chains";
-import { getSupportedAssets, TNodeDotKsmWithRelayChains } from "@paraspell/sdk";
+import { getSupportedAssets, TSubstrateChain } from "@paraspell/sdk";
 
 export function getNodeName({
   name,
@@ -18,7 +18,7 @@ export function getNodeName({
 
   if (!matchedKey) return undefined;
 
-  return CHAINS[symbol][matchedKey] as TNodeDotKsmWithRelayChains;
+  return CHAINS[symbol][matchedKey] as TSubstrateChain;
 }
 
 export function isAssetSupported({
@@ -27,8 +27,8 @@ export function isAssetSupported({
   dst,
 }: {
   symbol: string;
-  src: TNodeDotKsmWithRelayChains;
-  dst: TNodeDotKsmWithRelayChains;
+  src: TSubstrateChain;
+  dst: TSubstrateChain;
 }) {
   const assets = getSupportedAssets(src, dst);
 
