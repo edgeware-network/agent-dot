@@ -8,6 +8,7 @@ import {
   getAvailableValidators,
   getBalances,
   getConnectedAccounts,
+  getTeleportRoutes,
   joinNominationPoolsAgent,
   nominateAgent,
   setActiveAccount,
@@ -48,6 +49,7 @@ const tools: ToolSet = {
   joinNominationPoolsAgent: joinNominationPoolsAgent,
   bondExtraNominationPoolsAgent: bondExtraNominationPoolsAgent,
   unbondFromNominationPoolsAgent: unbondFromNominationPoolsAgent,
+  getTeleportRoutes: getTeleportRoutes,
 };
 
 export async function POST(req: Request) {

@@ -19,9 +19,9 @@ export {
 
 export {
   bondAgent,
+  getAvailableValidators,
   nominateAgent,
   unbondAgent,
-  getAvailableValidators,
 } from "@/agents/tools/staking-agent";
 
 export {
@@ -29,3 +29,5 @@ export {
   joinNominationPoolsAgent,
   unbondFromNominationPoolsAgent,
 } from "@/agents/tools/nomination-pools-agent";
+
+export { getTeleportRoutes } from "@/agents/tools/routes-agent";

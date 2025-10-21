@@ -67,6 +67,63 @@ export const CHAINS = {
   PAS: Record<string, string>;
 };
 
+export const WND_TELEPORT_ROUTES = {
+  "Westend AssetHub": [
+    "Westend",
+    "Westend BridgeHub",
+    "Westend Collectives",
+    "Westend Coretime",
+    "Westend People",
+  ],
+  Westend: [
+    "Westend AssetHub",
+    "Westend BridgeHub",
+    "Westend Collectives",
+    "Westend Coretime",
+    "Westend People",
+  ],
+  "Westend BridgeHub": ["Westend", "Westend AssetHub"],
+  "Westend Collectives": ["Westend", "Westend AssetHub"],
+  "Westend Coretime": ["Westend", "Westend AssetHub"],
+  "Westend People": ["Westend", "Westend AssetHub"],
+};
+
+export const PAS_TELEPORT_ROUTES = {
+  "Paseo AssetHub": ["Paseo", "Paseo BridgeHub", "PAssetHub"],
+  Paseo: [
+    "Paseo AssetHub",
+    "Paseo BridgeHub",
+    "PAssetHub",
+    "Paseo Coretime",
+    "Paseo People",
+  ],
+  "Paseo BridgeHub": ["Paseo", "Paseo AssetHub"],
+  "Paseo Coretime": ["Paseo"],
+  "Paseo People": ["Paseo"],
+  PAssetHub: ["Paseo", "Paseo AssetHub"],
+};
+
+export const DOT_TELEPORT_ROUTES = {
+  "Polkadot Assethub": [
+    "Polkadot",
+    "Polkadot BridgeHub",
+    "Polkadot Collectives",
+    "Polkadot Coretime",
+    "Polkadot People",
+  ],
+  Polkadot: [
+    "Polkadot Assethub",
+    "Polkadot BridgeHub",
+    "Polkadot Collectives",
+    "Polkadot Coretime",
+    "Polkadot People",
+  ],
+  "Polkadot BridgeHub": ["Polkadot", "Polkadot Assethub"],
+  "Polkadot Collectives": ["Polkadot", "Polkadot Assethub"],
+  "Polkadot Coretime": ["Polkadot", "Polkadot Assethub"],
+  "Polkadot People": ["Polkadot", "Polkadot Assethub"],
+};
+
 export const TOKENS = {
   DOT: "DOT",
   KSM: "KSM",
