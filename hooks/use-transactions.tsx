@@ -1,7 +1,7 @@
 "use client";
 
 import { TOKEN_DECIMALS } from "@/constants/chains";
-import { convertAmountToPlancks } from "@/lib/utils";
+import { convertAmountToPlancks, getSubscanSubdomain } from "@/lib/utils";
 import { ExtensionContext } from "@/providers/extension-provider";
 import { useLightClientApi } from "@/providers/light-client-provider";
 import { UIMessage, UseChatHelpers } from "@ai-sdk/react";
@@ -64,7 +64,7 @@ export function useTransactions() {
           }
 
           toast.success(
-            `Transaction sent: https://${activeChain.name.toLowerCase()}.subscan.io/extrinsic/${tx.txHash}`,
+            `Transaction sent: https://${getSubscanSubdomain(activeChain.name)}.subscan.io/extrinsic/${tx.txHash}`,
             {
               id: toastId,
             },
@@ -75,7 +75,9 @@ export function useTransactions() {
             parts: [
               {
                 type: "text",
-                text: `Transaction sent: https://${activeChain.name.toLowerCase()}.subscan.io/extrinsic/${tx.txHash}`,
+                text: `Transaction sent: https://${getSubscanSubdomain(
+                  activeChain.name,
+                )}.subscan.io/extrinsic/${tx.txHash}`,
               },
             ],
           });
@@ -153,7 +155,7 @@ export function useTransactions() {
 
           // BUG: might not for some chains src naming is different eg. peoplepolkadot is people-polkadot
           toast.success(
-            `XCM transaction sent: https://${src.toLowerCase()}.subscan.io/extrinsic/${xcm.txHash}`,
+            `XCM transaction sent: https://${getSubscanSubdomain(src)}.subscan.io/extrinsic/${xcm.txHash}`,
             {
               id: toastId,
             },
@@ -165,7 +167,9 @@ export function useTransactions() {
               parts: [
                 {
                   type: "text",
-                  text: `XCM transaction sent: https://${src.toLowerCase()}.subscan.io/extrinsic/${xcm.txHash}`,
+                  text: `XCM transaction sent: https://${getSubscanSubdomain(
+                    src,
+                  )}.subscan.io/extrinsic/${xcm.txHash}`,
                 },
               ],
             },

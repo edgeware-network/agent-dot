@@ -83,3 +83,17 @@ export function sanitizeText(text: string) {
 export function isValidEthereumAddress(address: string) {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
+
+export function getSubscanSubdomain(chain: string): string {
+  const relays = ["Polkadot", "Westend", "Paseo", "Kusama"];
+  for (const relay of relays) {
+    if (chain.endsWith(relay)) {
+      if (chain === relay) {
+        return relay.toLowerCase();
+      }
+      const prefix = chain.substring(0, chain.length - relay.length);
+      return `${prefix.toLowerCase()}-${relay.toLowerCase()}`;
+    }
+  }
+  return chain.toLowerCase();
+}
