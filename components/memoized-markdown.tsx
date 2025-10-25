@@ -2,9 +2,60 @@
 import { CodeBlock } from "@/components/code-block";
 import { marked } from "marked";
 import Link from "next/link";
-import { memo, useMemo } from "react";
+import { memo, ReactNode, useMemo } from "react";
 import ReactMarkdown, { Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+
+const SafeParagraph = (({
+  children,
+  ...props
+}: {
+  children?: ReactNode;
+  [key: string]: unknown;
+}) => {
+  const hasBlockElement = (children: ReactNode): boolean => {
+    if (!children) return false;
+    const childArray = Array.isArray(children) ? children : [children];
+
+    return childArray.some((child: unknown) => {
+      if (!child || typeof child !== "object") return false;
+
+      const reactChild = child as { type?: string | { name?: string } };
+
+      if (reactChild.type) {
+        const typeName =
+          typeof reactChild.type === "string"
+            ? reactChild.type
+            : (reactChild.type.name ?? "");
+        const blockElements = [
+          "div",
+          "pre",
+          "table",
+          "ul",
+          "ol",
+          "li",
+          "h1",
+          "h2",
+          "h3",
+          "h4",
+          "h5",
+          "h6",
+          "blockquote",
+          "form",
+          "CodeBlock",
+        ];
+        return blockElements.some((el) =>
+          typeName.toLowerCase().includes(el.toLowerCase()),
+        );
+      }
+      return false;
+    });
+  };
+  if (hasBlockElement(children)) {
+    return <>{children}</>;
+  }
+  return <p {...props}>{children}</p>;
+}) as Components["p"];
 
 const components: Partial<Components> = {
   code: CodeBlock as Components["code"],
@@ -92,9 +143,7 @@ const components: Partial<Components> = {
       </h6>
     );
   },
-  p: ({ node, children, ...props }) => {
-    return <p {...props}>{children}</p>;
-  },
+  p: SafeParagraph,
 };
 
 const remarkPlugins = [remarkGfm];

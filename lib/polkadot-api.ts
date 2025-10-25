@@ -50,9 +50,11 @@ export type StakingDescriptors = typeof dot | typeof pas | typeof wnd;
 
 export async function getSessionValidators({
   client,
+  assetHubClient,
   activeChain,
 }: {
   client: ClientRef;
+  assetHubClient: ClientRef;
   activeChain: ActiveChainRef;
 }) {
   if (!client.current) return [];
@@ -65,28 +67,54 @@ export async function getSessionValidators({
   const api = client.current.getTypedApi(descriptors);
 
   const validators = await api.query.Session.Validators.getValue();
-  const activeEra = await api.query.Staking.ActiveEra.getValue();
 
-  if (activeEra) {
-    for (const val of validators) {
-      const exposure = await api.query.Staking.ErasStakersOverview.getValue(
+  let stakingApi = api;
+
+  let activeEra = await stakingApi.query.Staking.ActiveEra.getValue();
+
+  if (!activeEra?.index && assetHubClient.current) {
+    const ahApi = assetHubClient.current.getTypedApi(descriptors);
+    const ahEra = await ahApi.query.Staking.ActiveEra.getValue();
+    if (ahEra) {
+      stakingApi = ahApi;
+      activeEra = ahEra;
+    }
+  }
+
+  if (!activeEra) {
+    return [];
+  }
+
+  for (const val of validators) {
+    const exposure =
+      await stakingApi.query.Staking.ErasStakersOverview.getValue(
         activeEra.index,
         val,
       );
 
-      if (exposure) {
-        bestValidators.push({
-          address: val,
-          staked: exposure.total,
-        });
-      }
+    if (exposure) {
+      bestValidators.push({
+        address: val,
+        staked: exposure.total,
+      });
     }
+  }
 
-    const sorted = bestValidators.sort((a, b) => Number(b.staked - a.staked));
+  const sorted = bestValidators.sort((a, b) => Number(b.staked - a.staked));
 
-    if (sorted.length > 10) {
-      return sorted.slice(0, 10);
-    }
+  if (sorted.length > 10) {
+    const unit = activeChain.current.chainSpec.properties.tokenSymbol;
+    const decimals = activeChain.current.chainSpec.properties.tokenDecimals;
+    const topValidators = sorted.slice(0, 10).map((validator) => ({
+      address: validator.address,
+      staked: formatBalance({
+        value: validator.staked,
+        unit,
+        decimals,
+        options: { nDecimals: 3 },
+      }),
+    }));
+    return topValidators;
   }
 
   return [];

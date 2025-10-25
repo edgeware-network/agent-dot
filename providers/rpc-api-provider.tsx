@@ -6,12 +6,22 @@ import { getWsProvider } from "polkadot-api/ws-provider";
 import { StatusChange, WsJsonRpcProvider } from "polkadot-api/ws-provider/web";
 
 import {
-  chainConfig,
   type AvailableApis,
   type ChainConfig,
+  chainConfig,
 } from "@/papi-config";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  RefObject,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
+
+export type ClientRef = RefObject<PolkadotClient | null>;
+export type ActiveChainRef = RefObject<ChainConfig | null>;
 
 interface RpcApiProviderType {
   connectionStatus: StatusChange | undefined;
@@ -24,6 +34,11 @@ interface RpcApiProviderType {
 
 const RpcApiContext = createContext<RpcApiProviderType | undefined>(undefined);
 
+interface ExtendedProvider extends WsJsonRpcProvider {
+  destroy?: () => void;
+  ws?: { close: () => void };
+}
+
 export function RpcApiProvider({ children }: { children: React.ReactNode }) {
   const wsProviderRef = useRef<WsJsonRpcProvider | null>(null);
   const [activeChain, _setActiveChain] = useState<ChainConfig | null>(null);
@@ -35,8 +50,89 @@ export function RpcApiProvider({ children }: { children: React.ReactNode }) {
   >(undefined);
 
   useEffect(() => {
-    setActiveChain(chainConfig[0]);
+    const savedChainName = localStorage.getItem("selectedChain");
+    const saved = savedChainName
+      ? chainConfig.find(
+          (c) => c.name.toLowerCase() === savedChainName.toLowerCase(),
+        )
+      : null;
+
+    if (saved) {
+      _setActiveChain(saved);
+    } else {
+      _setActiveChain(
+        chainConfig.find((c) => c.name.toLowerCase() === "paseo") ??
+          chainConfig[0],
+      );
+    }
   }, []);
+
+  useEffect(() => {
+    if (!activeChain) return;
+
+    const wsEndpointSafe = handleWsEndpoint({
+      defaultEndpoint: activeChain.endpoints[0],
+    });
+
+    if (!wsEndpointSafe) {
+      toast.error("No valid WebSocket endpoint found");
+      return;
+    }
+
+    try {
+      const provider = getWsProvider([wsEndpointSafe], {
+        onStatusChanged: setConnectionStatus,
+      });
+
+      wsProviderRef.current = provider;
+
+      const client = createClient(withPolkadotSdkCompat(provider));
+      clientRef.current = client;
+
+      const api = client.getTypedApi(activeChain.descriptors);
+      setActiveApi(api);
+
+      void (async () => {
+        try {
+          const chainMeta =
+            "constants" in api && "System" in api.constants
+              ? await (
+                  api.constants as Record<
+                    string,
+                    Record<string, () => Promise<unknown>>
+                  >
+                ).System.Version()
+              : "";
+          // eslint-disable-next-line no-console
+          console.log(
+            `[RpcApiProvider] Connected to ${activeChain.name}`,
+            chainMeta,
+          );
+        } catch {
+          // eslint-disable-next-line no-console
+          console.log(`[RpcApiProvider] Connected to ${activeChain.name}`);
+        }
+      })();
+
+      return () => {
+        const extendedProvider = provider as ExtendedProvider;
+        if (
+          "destroy" in extendedProvider &&
+          typeof extendedProvider.destroy === "function"
+        ) {
+          extendedProvider.destroy();
+        } else if (
+          extendedProvider.ws &&
+          typeof extendedProvider.ws.close === "function"
+        ) {
+          extendedProvider.ws.close();
+        }
+      };
+    } catch (error) {
+      const err = error as Error;
+      toast.error(`Failed to connect to ${activeChain.name}: ${err.message}`);
+    }
+  }, [activeChain]);
 
   const setActiveChain = (newChain: ChainConfig) => {
     try {

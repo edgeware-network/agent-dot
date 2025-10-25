@@ -28,6 +28,7 @@ export async function onChatToolCall({
   setSelectedAccountRef,
   selectedExtensionsRef,
   clientRef,
+  assetHubClientRef,
   setActiveRpcChainRef,
   toolCall,
   addToolResult,
@@ -40,6 +41,7 @@ export async function onChatToolCall({
   setSelectedAccountRef: SetSelectedAccountRef;
   selectedExtensionsRef: SelectedExtensionsRef;
   clientRef: ClientRef;
+  assetHubClientRef: ClientRef;
   setActiveRpcChainRef: SetActiveRpcChainRef;
   toolCall: {
     toolName: string;
@@ -182,13 +184,23 @@ export async function onChatToolCall({
   if (toolCall.toolName === "getAvailableValidators") {
     const validators = await getSessionValidators({
       client: clientRef,
+      assetHubClient: assetHubClientRef,
       activeChain: activeChainRef,
     });
+
+    if ("error" in validators) {
+      addToolResult({
+        tool: toolCall.toolName,
+        toolCallId: toolCall.toolCallId,
+        output: { error: validators.error },
+      });
+      return;
+    }
 
     const val_addrs = validators.map((validator) => {
       return {
         address: validator.address,
-        staked: validator.staked.toString(),
+        staked: validator.staked,
       };
     });
 

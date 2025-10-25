@@ -20,6 +20,7 @@ export default function Chat() {
     setActiveChainRef,
     setSelectedAccountRef,
     clientRef,
+    assetHubClientRef,
     setActiveRpcChainRef,
   } = useRefObject();
 
@@ -39,6 +40,7 @@ export default function Chat() {
         setSelectedAccountRef,
         selectedExtensionsRef,
         clientRef,
+        assetHubClientRef,
         toolCall,
         setActiveRpcChainRef,
         addToolResult,
