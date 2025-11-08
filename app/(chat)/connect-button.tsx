@@ -5,8 +5,7 @@ import { Identicon } from "@/components/identicon";
 import { Button } from "@/components/ui/button";
 import { DialogView, MultiViewDialog } from "@/components/ui/multi-view-dialog";
 import { trimAddress } from "@/lib/utils";
-import { ExtensionContext } from "@/providers/extension-provider";
-import { use } from "react";
+import { useWallet } from "@/providers/wallet-provider";
 
 function Wallet({ address, name }: { address: string; name: string }) {
   return (
@@ -24,17 +23,15 @@ function Wallet({ address, name }: { address: string; name: string }) {
 }
 
 export default function ConnectButton() {
-  const { selectedAccount, selectedExtensions } = use(ExtensionContext);
+  const { selectedAccount, connectedWallets } = useWallet();
 
-  const hasConnectedAccounts = selectedExtensions.some((extension) =>
-    extension.getAccounts().some((account) => account.address),
-  );
+  const hasConnectedWallets = connectedWallets.length > 0;
 
   const views: DialogView[] = [
     {
       title: "Connect Wallet",
       description:
-        "Select a wallet to connect to your account. If you don't have a wallet installed, you can install one from the list.",
+        "Connect your wallet. Now supports WalletConnect, Ledger hardware wallets, and Mimir multisig!",
       content: ({ next, previous }) => (
         <ViewSelectWallet next={next} previous={previous} />
       ),
@@ -52,7 +49,7 @@ export default function ConnectButton() {
       className="font-outfit flex h-10 min-w-32 cursor-pointer items-center justify-center rounded-[0.625rem] px-2 py-1 text-base font-medium tracking-tight font-stretch-condensed transition-colors duration-100 active:scale-[0.99]"
     >
       <MultiViewDialog
-        initialView={hasConnectedAccounts ? 1 : 0}
+        initialView={hasConnectedWallets ? 1 : 0}
         trigger={
           <div className="flex items-center gap-2">
             {selectedAccount?.name && (

@@ -1,8 +1,11 @@
+# Detect package manager
+PM=$(sh .husky/detect-pm.sh)
+
 # 🧪 Run commitlint 
 echo ""
 echo "🧪 Running Commitlint to validate your commit message..."
 
-if pnpm commitlint $1; then
+if $PM commitlint $1; then
   echo ""
   echo "🎉 Success! Your commit message is on point! 🚀"
   echo "✅ Proceeding with the commit..."

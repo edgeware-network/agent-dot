@@ -6,13 +6,19 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useBlockNumber } from "@/hooks/use-block-number";
-import { useLightClientApi } from "@/providers/light-client-provider";
+import { chainConfig } from "@/papi-config";
+import { useWallet } from "@/providers/wallet-provider";
 import { WsEvent } from "polkadot-api/ws-provider/web";
 import { useEffect, useMemo, useState } from "react";
 import { BiLoaderCircle } from "react-icons/bi";
 
 export default function ChainBlockInfo() {
-  const { connectionStatus, activeChain } = useLightClientApi();
+  const { activeChainId } = useWallet();
+  const activeChain =
+    chainConfig.find((chain) => chain.key === activeChainId) ?? chainConfig[0];
+
+  // Mock connection status (reactive-dot handles this internally)
+  const connectionStatus = { type: WsEvent.CONNECTED };
   const [isOpen, setIsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -23,10 +29,10 @@ export default function ChainBlockInfo() {
   }, []);
 
   const status: "connected" | "error" | "connecting" =
-    connectionStatus?.type === WsEvent.CONNECTED && blockNumber
+    connectionStatus.type === WsEvent.CONNECTED && blockNumber
       ? "connected"
-      : connectionStatus?.type === WsEvent.ERROR ||
-          connectionStatus?.type === WsEvent.CLOSE
+      : connectionStatus.type === WsEvent.ERROR ||
+          connectionStatus.type === WsEvent.CLOSE
         ? "error"
         : "connecting";
 

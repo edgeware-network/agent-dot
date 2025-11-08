@@ -73,7 +73,9 @@ export function convertAmountToPlancks(
   amount: number,
   decimals: number,
 ): string {
-  return (BigInt(amount) * 10n ** BigInt(decimals)).toString();
+  const multiplier = 10 ** decimals;
+  const plancks = Math.round(amount * multiplier);
+  return BigInt(plancks).toString();
 }
 
 export function sanitizeText(text: string) {

@@ -15,6 +15,7 @@ const ALL_TELEPORT_ROUTES = {
 export const getTeleportRoutes = tool({
   description:
     "Get the valid teleport destinations for a given origin chain within the Polkadot, Westend, or Paseo ecosystems.",
+  // @ts-expect-error - tool function overload issue
   inputSchema: z.object({
     chain: z
       .string()
@@ -22,6 +23,7 @@ export const getTeleportRoutes = tool({
         "The origin chain to get the teleport destinations for. Must be one of the available chains.",
       ),
   }),
+  // @ts-expect-error - tool function overload issue
   execute: ({ chain }: { chain: string }) => {
     const destinations =
       ALL_TELEPORT_ROUTES[chain as keyof typeof ALL_TELEPORT_ROUTES];

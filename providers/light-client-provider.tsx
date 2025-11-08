@@ -68,6 +68,8 @@ export function LightClientApiProvider({
 
   const initializeClient = useCallback(
     async (chainConfig: ChainConfig) => {
+      const TIMEOUT_MS = 30000; // 30 seconds timeout
+
       try {
         if (smoldotRef.current) {
           await smoldotRef.current.terminate();
@@ -79,24 +81,69 @@ export function LightClientApiProvider({
           uri: "via lightclient",
         });
 
-        smoldotRef.current = await startSmoldotWorker();
+        // Wrap the connection in a timeout
+        const connectionPromise = (async () => {
+          // eslint-disable-next-line no-console
+          console.log(
+            `[LightClient] Starting Smoldot worker for ${chainConfig.name}...`,
+          );
+          smoldotRef.current = await startSmoldotWorker();
+          // eslint-disable-next-line no-console
+          console.log("[LightClient] Smoldot worker started");
 
-        let chain;
-        if (chainConfig.relayChainSpec) {
-          const relayChain = await smoldotRef.current.addChain({
-            chainSpec: JSON.stringify(chainConfig.relayChainSpec),
-          });
+          let chain;
+          if (chainConfig.relayChainSpec) {
+            // AssetHub chains need relay chain first
+            // eslint-disable-next-line no-console
+            console.log(
+              `[LightClient] Adding relay chain: ${chainConfig.relayChainSpec.name}...`,
+            );
+            const relayChain = await smoldotRef.current.addChain({
+              chainSpec: JSON.stringify(chainConfig.relayChainSpec),
+            });
+            // eslint-disable-next-line no-console
+            console.log("[LightClient] Relay chain added");
 
-          chain = await smoldotRef.current.addChain({
-            chainSpec: JSON.stringify(chainConfig.chainSpec),
-            potentialRelayChains: [relayChain],
-          });
-        } else {
-          chain = await smoldotRef.current.addChain({
-            chainSpec: JSON.stringify(chainConfig.chainSpec),
-          });
-        }
+            // eslint-disable-next-line no-console
+            console.log(
+              `[LightClient] Adding parachain: ${chainConfig.name}...`,
+            );
+            chain = await smoldotRef.current.addChain({
+              chainSpec: JSON.stringify(chainConfig.chainSpec),
+              potentialRelayChains: [relayChain],
+            });
+            // eslint-disable-next-line no-console
+            console.log("[LightClient] Parachain added");
+          } else {
+            // Relay chains can be added directly
+            // eslint-disable-next-line no-console
+            console.log(
+              `[LightClient] Adding relay chain: ${chainConfig.name}...`,
+            );
+            chain = await smoldotRef.current.addChain({
+              chainSpec: JSON.stringify(chainConfig.chainSpec),
+            });
+            // eslint-disable-next-line no-console
+            console.log("[LightClient] Relay chain added");
+          }
 
+          return chain;
+        })();
+
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => {
+            reject(
+              new Error(
+                `Connection timeout after ${String(TIMEOUT_MS / 1000)} seconds. The light client may be having trouble syncing. Try refreshing the page or selecting a different network.`,
+              ),
+            );
+          }, TIMEOUT_MS);
+        });
+
+        const chain = await Promise.race([connectionPromise, timeoutPromise]);
+
+        // eslint-disable-next-line no-console
+        console.log(`[LightClient] Creating client for ${chainConfig.name}...`);
         const lightClient = createClient(getSmProvider(chain));
         setClient(lightClient);
         const typedApi = lightClient.getTypedApi(chainConfig.descriptors);
@@ -107,15 +154,39 @@ export function LightClientApiProvider({
           type: WsEvent.CONNECTED,
           uri: "via lightclient",
         });
+        // eslint-disable-next-line no-console
+        console.log(
+          `[LightClient] Successfully connected to ${chainConfig.name}`,
+        );
       } catch (error) {
+        // Clean up on error
+        if (smoldotRef.current) {
+          try {
+            await smoldotRef.current.terminate();
+          } catch {
+            // Ignore cleanup errors
+          }
+          smoldotRef.current = null;
+        }
+
         setConnectionStatus({
           type: WsEvent.ERROR,
           event: error,
         });
         setActiveApi(null);
         setClient(null);
+
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+
         toast.error(
-          `Failed to connect to ${chainConfig.name}: ${error instanceof Error ? error.message : "Unknown error"}`,
+          `Failed to connect to ${chainConfig.name}: ${errorMessage}`,
+          {
+            duration: 10000,
+            description: chainConfig.relayChainSpec
+              ? "AssetHub chains can be slow to sync via light client. Try refreshing or switching networks."
+              : "Try refreshing the page or switching to a different network.",
+          },
         );
       }
     },

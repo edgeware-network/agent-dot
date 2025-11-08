@@ -1,40 +1,21 @@
 "use client";
 
 import { NavigationButton } from "@/components/account/navigation-button";
-import { DotWalletPlatform, dotWallets } from "@/components/account/wallets";
 import { Identicon } from "@/components/identicon";
 import { Button } from "@/components/ui/button";
 import { ViewNavigationProps } from "@/components/ui/multi-view-dialog";
-import { isMobile } from "@/lib/is-mobile";
 import { trimAddress } from "@/lib/utils";
-import { ExtensionContext } from "@/providers/extension-provider";
-import Image from "next/image";
-import { use } from "react";
+import { useWallet } from "@/providers/wallet-provider";
 import { MdOutlineKeyboardDoubleArrowLeft } from "react-icons/md";
+import { RiWalletLine } from "react-icons/ri";
 
-function AccountInfo({
-  address,
-  logo,
-  name,
-}: {
-  address: string;
-  logo: string | undefined;
-  name: string;
-}) {
+function AccountInfo({ address, name }: { address: string; name: string }) {
   return (
     <div className="flex w-full items-center justify-between gap-2">
       <Identicon className="h-10 w-10" value={address} size={32} />
       <div className="flex w-full flex-col items-start justify-center gap-1">
         <div className="flex items-center gap-1">
-          {logo && (
-            <Image
-              src={logo}
-              alt={name}
-              width={32}
-              height={32}
-              className="h-4 w-4"
-            />
-          )}
+          <RiWalletLine className="h-4 w-4" />
           <span className="text-foreground truncate text-sm font-bold">
             {name}
           </span>
@@ -47,77 +28,48 @@ function AccountInfo({
   );
 }
 export default function ViewSelectAccount({ previous }: ViewNavigationProps) {
-  const {
-    selectedExtensions,
-    setSelectedAccount,
-    setIsWalletOpen,
-    availableExtensions,
-    refreshAllAccounts,
-  } = use(ExtensionContext);
+  const { allAccounts, setSelectedAccount, setIsWalletOpen, connectedWallets } =
+    useWallet();
 
-  const systemWallets = dotWallets
-    .filter((wallet) =>
-      isMobile()
-        ? wallet.platforms.includes(DotWalletPlatform.Android) ||
-          wallet.platforms.includes(DotWalletPlatform.iOS)
-        : wallet.platforms.includes(DotWalletPlatform.Browser),
-    )
-    .sort((a, b) =>
-      availableExtensions.includes(a.id)
-        ? -1
-        : availableExtensions.includes(b.id)
-          ? 1
-          : 0,
-    );
+  // Group accounts by wallet
+  const accountsByWallet = connectedWallets.map((wallet) => ({
+    wallet,
+    accounts: allAccounts.filter((acc) => acc.wallet.id === wallet.id),
+  }));
+
   return (
     <div className="flex flex-col gap-2 p-2">
       <div className="flex items-center justify-between px-2">
         <span className="text-muted-foreground text-sm">
           Connected Accounts
         </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => void refreshAllAccounts()}
-          className="text-xs"
-        >
-          Refresh
-        </Button>
       </div>
       <div className="flex max-h-[45vh] grow flex-col gap-2 overflow-y-auto px-2 sm:max-h-[70vh]">
-        {selectedExtensions.map((extension) => {
-          const logo = systemWallets.find(
-            (wallet) => wallet.id === extension.name,
-          )?.logoUrls[0];
-          return (
-            <div key={extension.name} className="flex flex-col gap-2">
-              {extension.getAccounts().map((account) => {
-                return (
-                  <Button
-                    key={account.address}
-                    className="font-manrope bg-background/10 border-border h-14 w-full cursor-pointer rounded-[0.6rem] border-2 p-2 hover:bg-[#252525]/50"
-                    onClick={() => {
-                      setSelectedAccount(account, extension);
-                      setIsWalletOpen(false);
-                    }}
-                  >
-                    <AccountInfo
-                      address={account.address}
-                      logo={logo}
-                      name={account.name ?? account.address}
-                    />
-                  </Button>
-                );
-              })}
-            </div>
-          );
-        })}
+        {accountsByWallet.map(({ wallet, accounts }) => (
+          <div key={wallet.id} className="flex flex-col gap-2">
+            {accounts.map((account) => (
+              <Button
+                key={account.address}
+                className="font-manrope bg-background/10 border-border h-14 w-full cursor-pointer rounded-[0.6rem] border-2 p-2 hover:bg-[#252525]/50"
+                onClick={() => {
+                  setSelectedAccount(account);
+                  setIsWalletOpen(false);
+                }}
+              >
+                <AccountInfo
+                  address={account.address}
+                  name={account.name ?? account.address}
+                />
+              </Button>
+            ))}
+          </div>
+        ))}
       </div>
       <NavigationButton
         Icon={MdOutlineKeyboardDoubleArrowLeft}
         text="Manage wallets"
         onClick={previous}
-        disabled={!selectedExtensions.length}
+        disabled={!connectedWallets.length}
       />
     </div>
   );

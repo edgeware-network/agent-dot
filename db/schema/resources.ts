@@ -20,6 +20,7 @@ export const resources = pgTable("resources", {
 });
 
 // Schema for resources - used to validate API requests
+// @ts-expect-error - drizzle-zod createSelectSchema overload issue
 export const insertResourceSchema = createSelectSchema(resources)
   .extend({})
   .omit({

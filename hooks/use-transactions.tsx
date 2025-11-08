@@ -1,24 +1,37 @@
 "use client";
 
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { TOKEN_DECIMALS } from "@/constants/chains";
 import { convertAmountToPlancks, getSubscanSubdomain } from "@/lib/utils";
-import { ExtensionContext } from "@/providers/extension-provider";
-import { useLightClientApi } from "@/providers/light-client-provider";
-import { UIMessage, UseChatHelpers } from "@ai-sdk/react";
+import { chainConfig } from "@/papi-config";
+import { useWallet } from "@/providers/wallet-provider";
+import { UseChatHelpers } from "@ai-sdk/react";
 import {
   Builder,
+  convertSs58,
   TChain,
   TCurrency,
   TSubstrateChain,
-  convertSs58,
 } from "@paraspell/sdk";
 import { MultiAddress } from "@polkadot-api/descriptors";
-import { use, useCallback } from "react";
+import { useChainId, useTypedApi } from "@reactive-dot/react";
+import { UIMessage } from "ai";
+import { useCallback } from "react";
 import { toast } from "sonner";
 
 export function useTransactions() {
-  const { api, activeChain } = useLightClientApi();
-  const { selectedAccount } = use(ExtensionContext);
+  const chainId = useChainId();
+  const api = useTypedApi();
+  const activeChain =
+    chainConfig.find((chain) => chain.key === chainId) ?? chainConfig[0];
+  const { selectedAccount } = useWallet();
 
   const sendTransaction = useCallback(
     async ({
@@ -52,7 +65,7 @@ export function useTransactions() {
           10n ** BigInt(activeChain.chainSpec.properties.tokenDecimals);
 
         try {
-          const tx = await api.tx.Balances.transfer_keep_alive({
+          const tx = await (api.tx.Balances.transfer_keep_alive as any)({
             dest: MultiAddress.Id(to),
             value,
           }).signAndSubmit(selectedAccount.polkadotSigner);

@@ -121,8 +121,8 @@ export const chainConfig: ChainConfig[] = [
     descriptors: pas_asset_hub,
     color: "#77BB77",
     endpoints: [
+      "wss://api-asset-hub-paseo.n.dwellir.com/eb7baebf-d116-4163-bcfb-d1dca6c9f7ed",
       "wss://sys.ibp.network/asset-hub-paseo",
-      "wss://sys.turboflakes.io/asset-hub-paseo",
       "wss://pas-rpc.stakeworld.io/assethub",
     ],
     icon: logos.paseo_asset_hub,

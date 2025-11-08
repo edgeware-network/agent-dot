@@ -22,9 +22,14 @@ import { RiArrowDownDoubleLine } from "react-icons/ri";
 interface PromptInputFormProps {
   sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
   status: UseChatHelpers<UIMessage>["status"];
+  stop: UseChatHelpers<UIMessage>["stop"];
 }
 
-function PurePromptInputForm({ sendMessage, status }: PromptInputFormProps) {
+function PurePromptInputForm({
+  sendMessage,
+  status,
+  stop,
+}: PromptInputFormProps) {
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const form = useForm<ChatSchema>({
     resolver: zodResolver(chatSchema),
@@ -61,6 +66,10 @@ function PurePromptInputForm({ sendMessage, status }: PromptInputFormProps) {
   }
 
   function onSubmit(data: ChatSchema) {
+    // Stop any ongoing request before sending a new message
+    if (status === "submitted" || status === "streaming") {
+      void stop();
+    }
     void sendMessage({ text: data.prompt.trim() });
     resetHeight();
     form.reset();
@@ -152,6 +161,7 @@ export const PromptInputForm = memo(
   PurePromptInputForm,
   (prevProps, nextProps) => {
     if (prevProps.status !== nextProps.status) return false;
+    if (prevProps.stop !== nextProps.stop) return false;
     return true;
   },
 );

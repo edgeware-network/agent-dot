@@ -17,9 +17,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { ExtensionContext } from "@/providers/extension-provider";
+import { useWallet } from "@/providers/wallet-provider";
 import { AnimatePresence, motion } from "framer-motion";
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface ViewNavigationProps {
   next?: () => void;
@@ -159,7 +159,7 @@ export function MultiViewDialog({
   views,
   initialView = 0,
 }: MultiViewDialogProps) {
-  const { isWalletOpen, setIsWalletOpen } = use(ExtensionContext);
+  const { isWalletOpen, setIsWalletOpen } = useWallet();
   const isMobile = useMediaQuery("(max-width: 640px)");
   const [currentView, setCurrentView] = useState(initialView);
   const [direction, setDirection] = useState<number>(0);

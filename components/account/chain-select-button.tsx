@@ -15,8 +15,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ChainConfig, chainConfig } from "@/papi-config";
-import { useLightClientApi } from "@/providers/light-client-provider";
-import { useRpcApi } from "@/providers/rpc-api-provider";
+import { useWallet } from "@/providers/wallet-provider";
 import Image from "next/image";
 import { WsEvent } from "polkadot-api/ws-provider/web";
 import { useEffect, useMemo, useState } from "react";
@@ -45,13 +44,17 @@ function ChainIcon({
 }
 
 export default function ChainSelectButton() {
-  const { activeChain, setActiveChain, connectionStatus } = useLightClientApi();
-  const { setActiveChain: setActiveApi } = useRpcApi();
+  const { activeChainId, switchChain } = useWallet();
+  const activeChain =
+    chainConfig.find((chain) => chain.key === activeChainId) ?? chainConfig[0];
   const [open, setOpen] = useState<boolean>(false);
+
+  // Mock connection status (reactive-dot handles this internally)
+  const connectionStatus = { type: WsEvent.CONNECTED };
 
   const TriggerButton = useMemo(
     function Trigger() {
-      if (connectionStatus?.type === WsEvent.ERROR) {
+      if (connectionStatus.type === WsEvent.ERROR) {
         return (
           <Button variant="ghost" size="icon">
             <TbAlertSquareRoundedFilled className="size-9 text-red-500" />
@@ -59,7 +62,7 @@ export default function ChainSelectButton() {
         );
       }
 
-      if (connectionStatus?.type === WsEvent.CONNECTING) {
+      if (connectionStatus.type === WsEvent.CONNECTING) {
         return (
           <TooltipProvider>
             <Tooltip>
@@ -96,15 +99,13 @@ export default function ChainSelectButton() {
   );
 
   function handleActiveChain(chain: ChainConfig) {
-    void (async () => {
-      try {
-        await setActiveChain(chain);
-        setActiveApi(chain);
-      } catch (err: unknown) {
-        const error = err as Error;
-        toast.error(error.message);
-      }
-    })();
+    try {
+      switchChain(chain.key);
+      toast.success(`Switched to ${chain.name}`);
+    } catch (error) {
+      const err = error as Error;
+      toast.error(`Failed to switch chain: ${err.message}`);
+    }
   }
 
   return (

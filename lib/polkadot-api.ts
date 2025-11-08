@@ -1,8 +1,14 @@
 import { formatBalance } from "@/lib/utils";
 import { AvailableApis, ChainConfig } from "@/papi-config";
 import { ActiveChainRef, ClientRef } from "@/types";
-import { dot, pas, wnd } from "@polkadot-api/descriptors";
-import { SS58String } from "polkadot-api";
+import {
+  dot,
+  pas,
+  pas_asset_hub,
+  wnd,
+  wnd_asset_hub,
+} from "@polkadot-api/descriptors";
+import { PolkadotClient, SS58String } from "polkadot-api";
 import { InjectedExtension } from "polkadot-api/pjs-signer";
 import { RefObject } from "react";
 
@@ -46,7 +52,12 @@ export function matchInjectedAccount(
   );
 }
 
-export type StakingDescriptors = typeof dot | typeof pas | typeof wnd;
+export type StakingDescriptors =
+  | typeof dot
+  | typeof pas
+  | typeof wnd
+  | typeof pas_asset_hub
+  | typeof wnd_asset_hub;
 
 export async function getSessionValidators({
   client,
@@ -54,7 +65,7 @@ export async function getSessionValidators({
   activeChain,
 }: {
   client: ClientRef;
-  assetHubClient: ClientRef;
+  assetHubClient: PolkadotClient | null;
   activeChain: ActiveChainRef;
 }) {
   if (!client.current) return [];
@@ -72,13 +83,16 @@ export async function getSessionValidators({
 
   let activeEra = await stakingApi.query.Staking.ActiveEra.getValue();
 
-  if (!activeEra?.index && assetHubClient.current) {
-    const ahApi = assetHubClient.current.getTypedApi(descriptors);
+  if (!activeEra?.index && assetHubClient) {
+    const ahApi = assetHubClient.getTypedApi(descriptors);
     const ahEra = await ahApi.query.Staking.ActiveEra.getValue();
     if (ahEra) {
       stakingApi = ahApi;
       activeEra = ahEra;
     }
+  } else if (!assetHubClient) {
+    // eslint-disable-next-line no-console
+    console.log("assetHubClient is not available.");
   }
 
   if (!activeEra) {
@@ -102,7 +116,7 @@ export async function getSessionValidators({
 
   const sorted = bestValidators.sort((a, b) => Number(b.staked - a.staked));
 
-  if (sorted.length > 10) {
+  if (sorted.length > 0) {
     const unit = activeChain.current.chainSpec.properties.tokenSymbol;
     const decimals = activeChain.current.chainSpec.properties.tokenDecimals;
     const topValidators = sorted.slice(0, 10).map((validator) => ({

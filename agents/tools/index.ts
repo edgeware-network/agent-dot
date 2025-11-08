@@ -1,5 +1,6 @@
 export {
   getActiveAccount,
+  getActiveNameAndBalance,
   getActiveNetwork,
   getAvailableNetworks,
   getBalances,
@@ -19,7 +20,9 @@ export {
 
 export {
   bondAgent,
+  bondExtraAgent,
   getAvailableValidators,
+  getBondedAmountAgent,
   nominateAgent,
   unbondAgent,
 } from "@/agents/tools/staking-agent";

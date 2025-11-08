@@ -1,32 +1,24 @@
 import { AvailableApis, ChainConfig } from "@/papi-config";
+import type { WalletAccount } from "@/providers/wallet-provider";
 import { TSubstrateChain } from "@paraspell/sdk";
+import type { Wallet } from "@reactive-dot/core/wallets.js";
 import { PolkadotClient } from "polkadot-api";
-import {
-  InjectedExtension,
-  InjectedPolkadotAccount,
-} from "polkadot-api/pjs-signer";
 import { RefObject } from "react";
 
 export type ApiRef = RefObject<AvailableApis | null>;
 export type ActiveChainRef = RefObject<ChainConfig>;
-export type SelectedAccountRef = RefObject<
-  | (InjectedPolkadotAccount & {
-      extension: InjectedExtension;
-    })
-  | null
->;
-export type ConnectedAccountsRef = RefObject<InjectedPolkadotAccount[]>;
-export type SelectedExtensionsRef = RefObject<InjectedExtension[]>;
+export type SelectedAccountRef = RefObject<WalletAccount | null>;
+export type ConnectedAccountsRef = RefObject<WalletAccount[]>;
+export type SelectedExtensionsRef = RefObject<Wallet[]>;
 export type SetActiveChainRef = RefObject<
   (chain: ChainConfig) => Promise<void>
 >;
-export type SetSelectedAccountRef = RefObject<
-  (account: InjectedPolkadotAccount, extension: InjectedExtension) => void
->;
+export type SetSelectedAccountRef = RefObject<(account: WalletAccount) => void>;
 export type ChainConfigRef = RefObject<ChainConfig[]>;
 export type ClientRef = RefObject<PolkadotClient | null>;
 export type ActiveRpcChainRef = RefObject<ChainConfig>;
 export type SetActiveRpcChainRef = RefObject<(chain: ChainConfig) => void>;
+export type AssetHubClientRef = RefObject<PolkadotClient | null>;
 
 export interface Transaction {
   to: string;
@@ -54,6 +46,10 @@ export interface Bond {
   value: number;
   payee: "Staked" | "Stash" | "Controller" | "Account" | "None";
   rewardAccount?: string;
+}
+
+export interface BondExtra {
+  maxAdditional: number;
 }
 
 export interface Nominate {
