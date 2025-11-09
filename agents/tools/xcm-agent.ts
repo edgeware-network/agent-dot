@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment -- TypeScript compiler shows errors but ESLint parser doesn't, so we use @ts-ignore */
 import { getNodeName, isAssetSupported } from "@/lib/paraspell";
 import { isValidEthereumAddress, isValidSS58Address } from "@/lib/utils";
 import {
@@ -12,7 +13,7 @@ const getAvailableSystemChains = tool({
   name: "getAvailableSystemChains",
   description:
     "Get the list of available system chains/networks for cross-chain transfers.",
-  // @ts-expect-error - tool function overload issue
+  // @ts-ignore - tool function overload issue (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({}),
 });
 
@@ -20,7 +21,7 @@ const getAvailableRelayChains = tool({
   name: "getAvailableRelayChains",
   description:
     "Get the list of available relay chains/networks for cross-chain transfers.",
-  // @ts-expect-error - tool function overload issue
+  // @ts-ignore - tool function overload issue (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({}),
 });
 
@@ -47,7 +48,7 @@ const xcmAgent = tool({
   name: "xcmAgent",
   description:
     "Prepare and confirm an XCM transaction to teleport tokens on the Polkadot, Westend and Paseo network.",
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     src: z.string().describe("The source network/chain to teleport from."),
     dst: z.string().describe("The destination network/chain to teleport to."),
@@ -63,7 +64,7 @@ const xcmAgent = tool({
         "An optional recipient wallet address. If not provided, the sender address will be used.",
       ),
   }),
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   outputSchema: z.object({
     tx: z
       .object({
@@ -77,7 +78,7 @@ const xcmAgent = tool({
       .optional(),
     message: z.string().optional(),
   }),
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   // eslint-disable-next-line @typescript-eslint/require-await
   execute: async (input: XcmAgentInput) => {
     const { src, dst, amount, symbol, sender, recipient } = input;
@@ -171,7 +172,7 @@ const xcmStablecoinFromAssetHub = tool({
   name: "xcmStablecoinFromAssetHub",
   description:
     "This tool is used to send or teleport stablecoins (USDT or USDC).",
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     src: z.string().describe("The source network/chain to teleport from."),
     dst: z.string().describe("The destination network/chain to teleport to."),
@@ -181,7 +182,7 @@ const xcmStablecoinFromAssetHub = tool({
       .describe("The symbol of the stablecoin to transfer."),
     recipient: z.string().describe("The recipient address to transfer to."),
   }),
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   outputSchema: z.object({
     tx: z
       .object({
@@ -195,7 +196,7 @@ const xcmStablecoinFromAssetHub = tool({
       .optional(),
     message: z.string().optional(),
   }),
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   // eslint-disable-next-line @typescript-eslint/require-await
   execute: async (input: XcmStablecoinFromAssetHubInput) => {
     const { src, dst, amount, symbol, recipient } = input;

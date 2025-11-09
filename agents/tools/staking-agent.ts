@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment -- TypeScript compiler shows errors but ESLint parser doesn't, so we use @ts-ignore */
 import {
   MAX_NOMINATIONS,
   SYMBOL_TO_RELAY_CHAIN,
@@ -50,7 +51,7 @@ export const bondAgent = tool({
   name: "bondAgent",
   description:
     "Bond tokens for staking on a Proof-of-Stake network within the Polkadot ecosystem. IMPORTANT: Staking locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as staking has migrated there. This locks a specified amount of tokens from a stash account and sets a controller account to manage staking operations, as well as defining how staking rewards will be received.",
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     stashAccount: z
       .string()
@@ -86,7 +87,7 @@ export const bondAgent = tool({
         "Required only if 'payee' is 'Account'. The address on the respective network to which staking rewards should be sent.",
       ),
   }),
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   outputSchema: z.object({
     tx: z
       .object({
@@ -97,7 +98,7 @@ export const bondAgent = tool({
       .optional(),
     message: z.string(),
   }),
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   // eslint-disable-next-line @typescript-eslint/require-await
   execute: async (input: BondAgentInput) => {
     const {
@@ -206,7 +207,7 @@ export const bondExtraAgent = tool({
   name: "bondExtraAgent",
   description:
     "Add more tokens to an existing bonded stake for staking on a Proof-of-Stake network within the Polkadot ecosystem. IMPORTANT: Staking locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as staking has migrated there. This increases the amount of tokens already locked in the stash account without changing the controller or reward destination. Use this when the account already has bonded tokens and wants to stake more.",
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     controllerAccount: z
       .string()
@@ -226,7 +227,7 @@ export const bondExtraAgent = tool({
         "The token symbol of the network you are bonding on (e.g., 'DOT' for Polkadot, 'KSM' for Kusama). Defaults to 'DOT'.",
       ),
   }),
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   outputSchema: z.object({
     tx: z
       .object({
@@ -235,7 +236,7 @@ export const bondExtraAgent = tool({
       .optional(),
     message: z.string(),
   }),
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   // eslint-disable-next-line @typescript-eslint/require-await
   execute: async (input: BondExtraAgentInput) => {
     const { controllerAccount, maxAdditional, tokenSymbol, network } = input;
@@ -306,7 +307,7 @@ export const getAvailableValidators = tool({
   name: "getAvailableValidators",
   description:
     "Get the list of available validators for staking on a relay chain within the Polkadot ecosystem. Only available on relay chains: Polkadot, Kusama, Westend, or Paseo. The validators will be fetched from the currently active network.",
-  // @ts-expect-error - tool function overload issue
+  // @ts-ignore - tool function overload issue (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     network: z.string().describe("The name of the active network/chain."),
   }),
@@ -342,7 +343,7 @@ export const nominateAgent = tool({
   name: "nominateAgent",
   description:
     "Nominate a list of validators to stake tokens with on a network within the Polkadot ecosystem. IMPORTANT: Staking locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as staking has migrated there. This action registers your intention to stake with specific validators and is essential for earning staking rewards. The maximum number of nominators varies by network.",
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     network: z.string().describe("The name of active network/chain."),
     controllerAccount: z
@@ -363,7 +364,7 @@ export const nominateAgent = tool({
         "The token symbol of the network you are nominating on (e.g., 'DOT' for Polkadot, 'KSM' for Kusama). Defaults to 'DOT'.",
       ),
   }),
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   outputSchema: z.object({
     tx: z
       .object({
@@ -372,7 +373,7 @@ export const nominateAgent = tool({
       .optional(),
     message: z.string(),
   }),
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   // eslint-disable-next-line @typescript-eslint/require-await
   execute: async (input: NominateAgentInput) => {
     const { controllerAccount, targets, tokenSymbol, network } = input;
@@ -467,7 +468,7 @@ export const unbondAgent = tool({
   name: "unbondAgent",
   description:
     "Unbond a specific amount of tokens that were previously bonded for staking on a network within the Polkadot ecosystem. IMPORTANT: Staking locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as staking has migrated there. These funds will become available for withdrawal after a network-specific unbonding period.",
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     controllerAccount: z
       .string()
@@ -487,7 +488,7 @@ export const unbondAgent = tool({
         "The token symbol of the network you are unbonding from (e.g., 'DOT' for Polkadot, 'KSM' for Kusama). Defaults to 'DOT'.",
       ),
   }),
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   outputSchema: z.object({
     tx: z
       .object({
@@ -496,7 +497,7 @@ export const unbondAgent = tool({
       .optional(),
     message: z.string(),
   }),
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   // eslint-disable-next-line @typescript-eslint/require-await
   execute: async (input: UnbondAgentInput) => {
     const { controllerAccount, value, tokenSymbol, network } = input;
@@ -561,7 +562,7 @@ export const getBondedAmountAgent = tool({
   name: "getBondedAmountAgent",
   description:
     "Get the current bonded staking amount for a controller account on the active network. This returns the stash account, total bonded amount, and active bonded amount. IMPORTANT: Staking locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as staking has migrated there.",
-  // @ts-expect-error - tool function overload issue
+  // @ts-ignore - tool function overload issue (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     controllerAccount: z
       .string()

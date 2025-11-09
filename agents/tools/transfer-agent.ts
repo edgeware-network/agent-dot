@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment -- TypeScript compiler shows errors but ESLint parser doesn't, so we use @ts-ignore */
 import { isValidSS58Address } from "@/lib/utils";
 import { tool } from "ai";
 import z from "zod";
@@ -17,7 +18,7 @@ export const transferAgent = tool({
   name: "transferAgent",
   description:
     "Prepare and confirm a transfer of tokens on the Polkadot network.",
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     to: z.string().describe("A SS58-encoded wallet address to transfer to."),
     token: z.string().describe("The symbol of the token to transfer."),
@@ -25,7 +26,7 @@ export const transferAgent = tool({
       .number()
       .describe("The amount of tokens to transfer. Must be a positive number."),
   }),
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   outputSchema: z.object({
     tx: z
       .object({
@@ -35,7 +36,7 @@ export const transferAgent = tool({
       .optional(),
     message: z.string().optional(),
   }),
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   // eslint-disable-next-line @typescript-eslint/require-await
   execute: async (input: TransferAgentInput) => {
     const { to, amount, token } = input;

@@ -18,10 +18,12 @@ export default [
       "postcss.config.js",
       "public/**",
       ".next/**",
+      ".vercel/**",
       "next-env.d.ts",
       ".papi/**",
       "scripts/dist/**",
       "scripts/*.cjs",
+      "pages/**/*.js", // Pages Router files - plain JavaScript, no TypeScript checking needed
     ],
   },
   {

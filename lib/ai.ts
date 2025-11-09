@@ -8,6 +8,7 @@ import {
   StakingDescriptors,
 } from "@/lib/polkadot-api";
 import { ChainConfig, chainConfig } from "@/papi-config";
+import type { WalletAccount } from "@/providers/wallet-provider";
 import {
   ActiveChainRef,
   ApiRef,
@@ -49,7 +50,12 @@ export async function onChatToolCall({
   addToolResult: UseChatHelpers<UIMessage>["addToolResult"];
 }) {
   // Before handling any tool, try to hydrate the selected account from storage
+  // Only hydrate if there's no current selection (to avoid overwriting recent switches)
   const hydrateSelectedFromStorage = () => {
+    // Skip hydration if we already have a selected account in memory
+    // This prevents overwriting recent account switches
+    if (selectedAccountRef.current) return;
+
     if (typeof window === "undefined") return;
     try {
       const raw = window.localStorage.getItem("agent-dot:selected-account");
@@ -66,10 +72,7 @@ export async function onChatToolCall({
         found = connectedAccountsRef.current.find((a) => a.name === name);
       }
       if (found) {
-        const current = selectedAccountRef.current;
-        if (current?.address !== found.address) {
-          setSelectedAccountRef.current(found);
-        }
+        setSelectedAccountRef.current(found);
       }
     } catch {
       // ignore
@@ -77,11 +80,18 @@ export async function onChatToolCall({
   };
 
   hydrateSelectedFromStorage();
-  // Resolve freshest active account; prefer latest persisted selection (storage)
+  // Resolve freshest active account; prefer in-memory ref (most current) over storage
   // Returns either a connected account or a lightweight { address, name } from storage
   const resolveActiveSelection = ():
     | { address?: string; name?: string }
     | undefined => {
+    // FIRST: Check in-memory ref (most up-to-date, reflects recent switches)
+    const mem = selectedAccountRef.current;
+    if (mem) {
+      return { address: mem.address, name: mem.name };
+    }
+
+    // SECOND: Fallback to localStorage if ref is not available
     if (typeof window !== "undefined") {
       try {
         const raw = window.localStorage.getItem("agent-dot:selected-account");
@@ -112,9 +122,6 @@ export async function onChatToolCall({
         // ignore
       }
     }
-    // fallback to in-memory selection
-    const mem = selectedAccountRef.current;
-    if (mem) return { address: mem.address, name: mem.name };
     return undefined;
   };
   if (toolCall.toolName === "getBalances") {
@@ -195,18 +202,60 @@ export async function onChatToolCall({
   }
 
   if (toolCall.toolName === "setActiveAccount") {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _account = toolCall.input as {
-      address: SS58String | undefined;
-      name: string;
+    const accountInput = toolCall.input as {
+      address?: SS58String;
+      name?: string;
     };
 
-    // Safety: require explicit user instruction to switch; do not switch on corrections like "nope"
+    const { address, name } = accountInput;
+
+    // Must provide either name or address
+    if (!address && !name) {
+      addToolResult({
+        tool: toolCall.toolName,
+        toolCallId: toolCall.toolCallId,
+        output:
+          "Please provide either an account name or address to switch to. For example: 'switch account to Alice' or 'switch to <address>'.",
+      });
+      return;
+    }
+
+    // Find matching account - prefer name match first, then address
+    let foundAccount: WalletAccount | undefined;
+
+    if (name) {
+      // Try exact name match first (case-insensitive)
+      foundAccount = connectedAccountsRef.current.find(
+        (acc) => acc.name?.toLowerCase() === name.toLowerCase(),
+      );
+    }
+
+    // If not found by name, try address match
+    if (!foundAccount && address) {
+      foundAccount = connectedAccountsRef.current.find(
+        (acc) => acc.address === address,
+      );
+    }
+
+    if (!foundAccount) {
+      const availableAccounts = connectedAccountsRef.current.map(
+        (acc) => acc.name ?? acc.address,
+      );
+      addToolResult({
+        tool: toolCall.toolName,
+        toolCallId: toolCall.toolCallId,
+        output: `Account not found. Available accounts: ${availableAccounts.join(", ")}`,
+      });
+      return;
+    }
+
+    // Switch to the found account
+    setSelectedAccountRef.current(foundAccount);
+
     addToolResult({
       tool: toolCall.toolName,
       toolCallId: toolCall.toolCallId,
-      output:
-        "Switching accounts requires explicit instruction. Ask the user to pick from the side tab or say: 'switch account to <address>'.",
+      output: `Switched to account: ${foundAccount.name ?? foundAccount.address}`,
     });
   }
 

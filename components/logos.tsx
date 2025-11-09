@@ -3,13 +3,7 @@ import Image from "next/image";
 
 export const logos = {
   polkadot: (
-    <Image
-      src="/icons/polkadot.svg"
-      alt="Polkadot"
-      width={32}
-      height={32}
-      priority
-    />
+    <Image src="/icons/polkadot.svg" alt="Polkadot" width={32} height={32} />
   ),
   paseo: <Image src="/icons/paseo.png" alt="Paseo" width={32} height={32} />,
   westend: (

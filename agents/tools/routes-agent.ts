@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment -- TypeScript compiler shows errors but ESLint parser doesn't, so we use @ts-ignore */
 import {
   DOT_TELEPORT_ROUTES,
   PAS_TELEPORT_ROUTES,
@@ -15,7 +16,7 @@ const ALL_TELEPORT_ROUTES = {
 export const getTeleportRoutes = tool({
   description:
     "Get the valid teleport destinations for a given origin chain within the Polkadot, Westend, or Paseo ecosystems.",
-  // @ts-expect-error - tool function overload issue
+  // @ts-ignore - tool function overload issue (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     chain: z
       .string()
@@ -23,7 +24,7 @@ export const getTeleportRoutes = tool({
         "The origin chain to get the teleport destinations for. Must be one of the available chains.",
       ),
   }),
-  // @ts-expect-error - tool function overload issue
+  // @ts-ignore - tool function overload issue (TypeScript shows error but ESLint parser doesn't)
   execute: ({ chain }: { chain: string }) => {
     const destinations =
       ALL_TELEPORT_ROUTES[chain as keyof typeof ALL_TELEPORT_ROUTES];

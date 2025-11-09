@@ -73,12 +73,15 @@ function WalletProviderInner({
   const [, connectWallet] = useWalletConnector();
   const [, disconnectWallet] = useWalletDisconnector();
 
-  const [isInitializing, setIsInitializing] = useState(true);
+  // Start with false to match server render, then check if initialization is needed
+  const [isInitializing, setIsInitializing] = useState(false);
   const [selectedAccount, setSelectedAccountState] =
     useState<WalletAccount | null>(null);
   const [isWalletOpen, setIsWalletOpen] = useState(false);
   const autoConnectAttemptedRef = useRef(false);
   const restoreAttemptedRef = useRef(false);
+  const disconnectingRef = useRef<string | null>(null);
+  const hasCheckedInitialization = useRef(false);
 
   // Convert @reactive-dot accounts to our WalletAccount format
   // Memoize to prevent infinite loops in useEffect
@@ -136,8 +139,24 @@ function WalletProviderInner({
 
   const handleDisconnectWallet = useCallback(
     async (wallet: Wallet) => {
+      // Prevent multiple simultaneous disconnect operations
+      if (disconnectingRef.current === wallet.id) {
+        return;
+      }
+
+      disconnectingRef.current = wallet.id;
+
       try {
-        await disconnectWallet(wallet);
+        // Add timeout to prevent hanging
+        const disconnectPromise = disconnectWallet(wallet);
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => {
+            reject(new Error("Disconnect timeout"));
+          }, 5000);
+        });
+
+        await Promise.race([disconnectPromise, timeoutPromise]);
+
         // If the disconnected wallet had the selected account, clear it
         if (selectedAccount?.wallet.id === wallet.id) {
           setSelectedAccountState(null);
@@ -145,11 +164,37 @@ function WalletProviderInner({
         }
       } catch (error) {
         const err = error as Error;
-        toast.error(`Failed to disconnect ${wallet.name}: ${err.message}`);
+        // Try alternative disconnect method if primary fails
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+          if ((wallet as any).disconnect) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+            await (wallet as any).disconnect();
+          }
+        } catch {
+          // Ignore secondary disconnect errors
+        }
+        toast.error(
+          `Failed to disconnect ${wallet.name}: ${err.message || "Unknown error"}`,
+        );
+      } finally {
+        disconnectingRef.current = null;
       }
     },
     [disconnectWallet, selectedAccount],
   );
+
+  // Check if initialization is needed on mount
+  useEffect(() => {
+    if (hasCheckedInitialization.current) return;
+    hasCheckedInitialization.current = true;
+
+    const stored = localStorage.getItem(SELECTED_ACCOUNT_KEY);
+    // If there's a stored account, we need to wait for accounts to load
+    if (stored && allAccounts.length === 0) {
+      setIsInitializing(true);
+    }
+  }, [allAccounts]);
 
   // Restore selected account once accounts are available
   useEffect(() => {
@@ -158,6 +203,7 @@ function WalletProviderInner({
     // Nothing stored: finish initializing immediately
     if (!stored) {
       setIsInitializing(false);
+      restoreAttemptedRef.current = true;
       return;
     }
     // Wait until accounts load before attempting restore
@@ -283,6 +329,12 @@ function WalletProviderInner({
 }
 
 export function WalletProvider({ children }: { children: ReactNode }) {
+  // CRITICAL: Check for SSR/static generation FIRST, before any hooks
+  // This prevents React from trying to access context during build
+  if (typeof window === "undefined") {
+    return <>{children}</>;
+  }
+
   // Restore chain from localStorage on mount
   const [activeChainId, setActiveChainId] = useState<string>(() => {
     if (typeof window !== "undefined") {
@@ -292,6 +344,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     return "polkadot";
   });
 
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const handleChainSwitch = useCallback((chainId: string) => {
     setActiveChainId(chainId);
     // Persist chain selection
@@ -299,6 +357,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(SELECTED_CHAIN_KEY, chainId);
     }
   }, []);
+
+  // Before mount, render children directly to prevent hydration mismatches
+  if (!isMounted) {
+    return <>{children}</>;
+  }
 
   return (
     <ReactiveDotProvider config={config}>

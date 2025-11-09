@@ -1,4 +1,9 @@
+"use client";
+
 import Link from "next/link";
+
+// Force dynamic rendering to prevent static generation issues
+export const dynamic = "force-dynamic";
 
 export default function NotFound() {
   return (

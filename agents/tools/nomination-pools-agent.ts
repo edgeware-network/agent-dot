@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment -- TypeScript compiler shows errors but ESLint parser doesn't, so we use @ts-ignore */
 import {
   MIN_POOL_BOND_AMOUNT,
   SYMBOL_TO_RELAY_CHAIN,
@@ -40,7 +41,7 @@ type JoinNominationPoolsInput = z.infer<typeof _joinNominationPoolsInputSchema>;
 export const joinNominationPoolsAgent = tool({
   description:
     "Join an existing nomination pool on a network within the Polkadot ecosystem. IMPORTANT: Nomination pools locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as nomination pools have migrated there. You will receive staking rewards proportionally from the pool. Note: You can only be a member of one pool at a time. A network-specific minimum bond amount is required to join a pool, and you need to ensure your account maintains its existential deposit plus transaction fees.",
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     network: z.string().describe("The name of the active network/chain."),
     senderAddress: z
@@ -67,7 +68,7 @@ export const joinNominationPoolsAgent = tool({
         "The token symbol of the network you are joining the pool on (e.g., 'DOT' for Polkadot, 'KSM' for Kusama). Defaults to 'DOT'.",
       ),
   }),
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   outputSchema: z.object({
     tx: z
       .object({
@@ -78,7 +79,7 @@ export const joinNominationPoolsAgent = tool({
     message: z.string(),
   }),
 
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   // eslint-disable-next-line @typescript-eslint/require-await
   execute: async (input: JoinNominationPoolsInput) => {
     const { senderAddress, amount, poolId, tokenSymbol, network } = input;
@@ -188,7 +189,7 @@ type BondExtraNominationPoolsInput = z.infer<
 export const bondExtraNominationPoolsAgent = tool({
   description:
     "Add more tokens to your existing bonded stake in a nomination pool on a network within the Polkadot ecosystem. IMPORTANT: Nomination pools locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as nomination pools have migrated there. You can either bond additional tokens from your account's free balance or re-stake your accumulated (unclaimed) rewards.",
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     network: z.string().describe("The name of the active network/chain."),
     memberAddress: z
@@ -204,13 +205,13 @@ export const bondExtraNominationPoolsAgent = tool({
         "The token symbol of the network you are bonding extra funds on (e.g., 'DOT' for Polkadot, 'KSM' for Kusama). Defaults to 'DOT'.",
       ),
   }),
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   outputSchema: z.object({
     tx: bondExtraParamSchema.optional(),
     message: z.string(),
   }),
 
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   // eslint-disable-next-line @typescript-eslint/require-await
   execute: async (input: BondExtraNominationPoolsInput) => {
     const { memberAddress, extra, tokenSymbol, network } = input;
@@ -300,7 +301,7 @@ type UnbondFromNominationPoolsInput = z.infer<
 export const unbondFromNominationPoolsAgent = tool({
   description:
     "Initiate the unbonding process for a specified amount of tokens (referred to as 'unbonding points') from a nomination pool you are currently a member of, on a network within the Polkadot ecosystem. IMPORTANT: Nomination pools locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as nomination pools have migrated there. The unbonded funds will become available for withdrawal after a network-specific unbonding period.",
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     network: z.string().describe("The name of the active network/chain."),
     memberAddress: z
@@ -320,7 +321,7 @@ export const unbondFromNominationPoolsAgent = tool({
         "The token symbol of the network you are unbonding from (e.g., 'DOT' for Polkadot, 'KSM' for Kusama). Defaults to 'DOT'.",
       ),
   }),
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   outputSchema: z.object({
     tx: z
       .object({
@@ -331,7 +332,7 @@ export const unbondFromNominationPoolsAgent = tool({
     message: z.string(),
   }),
 
-  // @ts-expect-error - tool function overload issue with inline schemas
+  // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   // eslint-disable-next-line @typescript-eslint/require-await
   execute: async (input: UnbondFromNominationPoolsInput) => {
     const { memberAddress, unbondingPoints, tokenSymbol, network } = input;
