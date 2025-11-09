@@ -1,12 +1,12 @@
 "use client";
 
-import { ExtensionProvider } from "@/providers/extension-provider";
-import { LightClientApiProvider } from "@/providers/light-client-provider";
+import { WalletProvider } from "@/providers/wallet-provider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  return (
-    <ExtensionProvider>
-      <LightClientApiProvider>{children}</LightClientApiProvider>
-    </ExtensionProvider>
-  );
+  // During SSR/static generation, skip providers entirely to prevent context errors
+  if (typeof window === "undefined") {
+    return <>{children}</>;
+  }
+
+  return <WalletProvider>{children}</WalletProvider>;
 }

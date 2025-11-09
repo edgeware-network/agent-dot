@@ -1,0 +1,401 @@
+"use client";
+
+import { MemoizedMarkdown } from "@/components/memoized-markdown";
+import { useNominationPools } from "@/hooks/use-nomination-pools";
+import { useStaking } from "@/hooks/use-staking";
+import { useTransactions } from "@/hooks/use-transactions";
+import { cn, sanitizeText } from "@/lib/utils";
+import {
+  Bond,
+  BondExtra,
+  BondExtraNominationPool,
+  JoinNominationPool,
+  Nominate,
+  Transaction,
+  Unbond,
+  UnbondFromNominationPool,
+  XcmStablecoinTransaction,
+  XcmTransaction,
+} from "@/types";
+import { UseChatHelpers } from "@ai-sdk/react";
+import { UIMessage } from "ai";
+import { deepEqual } from "fast-equals";
+import { AnimatePresence, motion } from "framer-motion";
+import { memo, useRef } from "react";
+import { PulseLoader, SyncLoader } from "react-spinners";
+
+function PurePreviewMessage({
+  message,
+  isStreaming,
+  isLast,
+  requiresScrollToBottom,
+  sendMessage,
+}: {
+  message: UIMessage;
+  isStreaming: boolean;
+  isLast: boolean;
+  requiresScrollToBottom: boolean;
+  sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
+}) {
+  const hasContent = message.parts.some(
+    (part) => part.type === "text" && part.text.trim().length > 0,
+  );
+  const isLoading =
+    message.role === "assistant" && isLast && (isStreaming || !hasContent);
+
+  const handleToolCallId = useRef(new Set<string>());
+  const { sendTransaction, sendXcmTransaction, sendXcmStablecoinTransaction } =
+    useTransactions();
+  const { bond, bondExtra, unbond, nominate } = useStaking();
+  const { join, bondExtraToPool, unbondFromPool } = useNominationPools();
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        data-testid={`message-${message.role}`}
+        className="group/message mx-auto w-full max-w-3xl px-4"
+        initial={{ y: 5, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        data-role={message.role}
+      >
+        <div className="font-outfit my-2 flex w-full gap-4 text-base shadow-sm group-data-[role=user]/message:ml-auto group-data-[role=user]/message:w-[70%] group-data-[role=user]/message:max-w-2xl sm:group-data-[role=user]/message:w-fit">
+          <div
+            className={cn("flex w-full flex-col gap-4", {
+              "min-h-96":
+                message.role === "assistant" && requiresScrollToBottom,
+            })}
+          >
+            {isLoading && !hasContent ? (
+              <div className="flex items-center gap-2">
+                <SyncLoader color="#bebebe" size={6} />
+              </div>
+            ) : (
+              <div
+                className={cn("flex flex-col gap-4", {
+                  "rounded-xl bg-[#bebebe] px-3 py-2 text-[#202020]":
+                    message.role === "assistant" && hasContent,
+                })}
+              >
+                {message.parts.map((part, index) => {
+                  const { type } = part;
+                  const key = `message-${message.id}-part-${String(index)}`;
+
+                  if (type === "text") {
+                    return (
+                      <div
+                        data-testid="message-content"
+                        className={cn("flex flex-col gap-4", {
+                          "rounded-2xl rounded-br-none bg-[#202020] px-3 py-2 text-[#bebebe]":
+                            message.role === "user",
+                        })}
+                        key={key}
+                      >
+                        {part.text.trim() && (
+                          <MemoizedMarkdown
+                            id={message.id}
+                            key={key}
+                            content={sanitizeText(part.text)}
+                          />
+                        )}
+                      </div>
+                    );
+                  }
+                  //TODO: add other tools here!
+                  if (
+                    type === "tool-transferAgent" &&
+                    !handleToolCallId.current.has(part.toolCallId)
+                  ) {
+                    handleToolCallId.current.add(part.toolCallId);
+                    const { state, toolCallId } = part;
+
+                    if (state === "output-available") {
+                      const { tx } = part.output as {
+                        tx: Transaction;
+                      };
+
+                      void sendTransaction({
+                        ...tx,
+                        sendMessage,
+                      });
+
+                      return <div key={toolCallId}></div>;
+                    }
+                  }
+                  if (
+                    type === "tool-xcmAgent" &&
+                    !handleToolCallId.current.has(`xcm-${part.toolCallId}`)
+                  ) {
+                    handleToolCallId.current.add(`xcm-${part.toolCallId}`);
+                    const { state, toolCallId } = part;
+
+                    if (state === "output-available") {
+                      const { tx } = part.output as {
+                        tx: XcmTransaction | undefined;
+                      };
+
+                      if (!tx) return <div key={toolCallId}></div>;
+
+                      void sendXcmTransaction({
+                        ...tx,
+                        sendMessage,
+                      });
+
+                      return <div key={toolCallId}></div>;
+                    }
+                  }
+                  if (
+                    type === "tool-xcmStablecoinFromAssetHub" &&
+                    !handleToolCallId.current.has(
+                      `xcm-stablecoin-${part.toolCallId}`,
+                    )
+                  ) {
+                    handleToolCallId.current.add(
+                      `xcm-stablecoin-${part.toolCallId}`,
+                    );
+                    const { state, toolCallId } = part;
+
+                    if (state === "output-available") {
+                      const { tx } = part.output as {
+                        tx: XcmStablecoinTransaction | undefined;
+                      };
+
+                      if (!tx) return <div key={toolCallId}></div>;
+
+                      void sendXcmStablecoinTransaction({
+                        ...tx,
+                        sendMessage,
+                      });
+
+                      return <div key={toolCallId}></div>;
+                    }
+                  }
+                  if (
+                    type === "tool-bondAgent" &&
+                    !handleToolCallId.current.has(`bond-${part.toolCallId}`)
+                  ) {
+                    handleToolCallId.current.add(`bond-${part.toolCallId}`);
+                    const { state, toolCallId } = part;
+
+                    if (state === "output-available") {
+                      const { tx } = part.output as {
+                        tx: Bond | undefined;
+                      };
+
+                      if (!tx) return <div key={toolCallId}></div>;
+                      if (tx.payee === "Account") {
+                        void bond({
+                          payee: { type: "Account", value: tx.rewardAccount },
+                          amount: tx.value,
+                          sendMessage,
+                        });
+                      } else {
+                        void bond({
+                          payee: { type: tx.payee, value: undefined },
+                          amount: tx.value,
+                          sendMessage,
+                        });
+                      }
+
+                      return <div key={toolCallId}></div>;
+                    }
+                  }
+                  if (
+                    type === "tool-bondExtraAgent" &&
+                    !handleToolCallId.current.has(
+                      `bondExtra-${part.toolCallId}`,
+                    )
+                  ) {
+                    handleToolCallId.current.add(
+                      `bondExtra-${part.toolCallId}`,
+                    );
+                    const { state, toolCallId } = part;
+
+                    if (state === "output-available") {
+                      const { tx } = part.output as {
+                        tx: BondExtra | undefined;
+                      };
+
+                      if (!tx) return <div key={toolCallId}></div>;
+
+                      void bondExtra({
+                        amount: tx.maxAdditional,
+                        sendMessage,
+                      });
+
+                      return <div key={toolCallId}></div>;
+                    }
+                  }
+                  if (
+                    type === "tool-nominateAgent" &&
+                    !handleToolCallId.current.has(`nominate-${part.toolCallId}`)
+                  ) {
+                    handleToolCallId.current.add(`nominate-${part.toolCallId}`);
+                    const { state, toolCallId } = part;
+
+                    if (state === "output-available") {
+                      const { tx } = part.output as {
+                        tx: Nominate | undefined;
+                      };
+
+                      if (!tx) return <div key={toolCallId}></div>;
+
+                      void nominate({
+                        ...tx,
+                        sendMessage,
+                      });
+
+                      return <div key={toolCallId}></div>;
+                    }
+                  }
+                  if (
+                    type === "tool-unbondAgent" &&
+                    !handleToolCallId.current.has(`unbond-${part.toolCallId}`)
+                  ) {
+                    handleToolCallId.current.add(`unbond-${part.toolCallId}`);
+                    const { state, toolCallId } = part;
+
+                    if (state === "output-available") {
+                      const { tx } = part.output as {
+                        tx: Unbond | undefined;
+                      };
+
+                      if (!tx) return <div key={toolCallId}></div>;
+
+                      void unbond({
+                        amount: tx.value,
+                        sendMessage,
+                      });
+
+                      return <div key={toolCallId}></div>;
+                    }
+                  }
+                  if (
+                    type === "tool-joinNominationPoolsAgent" &&
+                    !handleToolCallId.current.has(`joinPool-${part.toolCallId}`)
+                  ) {
+                    handleToolCallId.current.add(`joinPool-${part.toolCallId}`);
+                    const { state, toolCallId } = part;
+
+                    if (state === "output-available") {
+                      const { tx } = part.output as {
+                        tx: JoinNominationPool | undefined;
+                      };
+
+                      if (!tx) return <div key={toolCallId}></div>;
+
+                      void join({
+                        poolId: tx.poolId,
+                        amount: tx.amount,
+                        sendMessage,
+                      });
+
+                      return <div key={toolCallId}></div>;
+                    }
+                  }
+                  if (
+                    type === "tool-bondExtraNominationPoolsAgent" &&
+                    !handleToolCallId.current.has(
+                      `bondExtraToPool-${part.toolCallId}`,
+                    )
+                  ) {
+                    handleToolCallId.current.add(
+                      `bondExtraToPool-${part.toolCallId}`,
+                    );
+                    const { state, toolCallId } = part;
+
+                    if (state === "output-available") {
+                      const { tx } = part.output as {
+                        tx: BondExtraNominationPool | undefined;
+                      };
+
+                      if (!tx) return <div key={toolCallId}></div>;
+
+                      void bondExtraToPool({
+                        extra: tx.type,
+                        amount: tx.amount,
+                        sendMessage,
+                      });
+
+                      return <div key={toolCallId}></div>;
+                    }
+                  }
+                  if (
+                    type === "tool-unbondFromNominationPoolsAgent" &&
+                    !handleToolCallId.current.has(
+                      `unbondFromPool-${part.toolCallId}`,
+                    )
+                  ) {
+                    handleToolCallId.current.add(
+                      `unbondFromPool-${part.toolCallId}`,
+                    );
+                    const { state, toolCallId } = part;
+
+                    if (state === "output-available") {
+                      const { tx } = part.output as {
+                        tx: UnbondFromNominationPool | undefined;
+                      };
+
+                      if (!tx) return <div key={toolCallId}></div>;
+
+                      void unbondFromPool({
+                        member: tx.memberAddress,
+                        value: tx.unbondingPoints,
+                        sendMessage,
+                      });
+
+                      return <div key={toolCallId}></div>;
+                    }
+                  }
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+export const PreviewMessage = memo(
+  PurePreviewMessage,
+  (prevProps, nextProps) => {
+    if (prevProps.message.id !== nextProps.message.id) return false;
+    if (prevProps.isStreaming !== nextProps.isStreaming) return false;
+    if (prevProps.requiresScrollToBottom !== nextProps.requiresScrollToBottom)
+      return false;
+    if (prevProps.isLast !== nextProps.isLast) return false;
+    if (!deepEqual(prevProps.message.parts, nextProps.message.parts))
+      return false;
+    if (!deepEqual(prevProps.sendMessage, nextProps.sendMessage)) return false;
+
+    return false;
+  },
+);
+
+export function ThinkingMessage() {
+  const role = "assistant";
+
+  return (
+    <motion.div
+      data-testid="message-assistant-loading"
+      className="group/message mx-auto min-h-96 w-full max-w-3xl px-4"
+      initial={{ y: 5, opacity: 0 }}
+      animate={{ y: 0, opacity: 1, transition: { delay: 1 } }}
+      data-role={role}
+    >
+      <div
+        className={cn(
+          "flex w-full gap-4 rounded-2xl group-data-[role=user]/message:ml-auto group-data-[role=user]/message:w-fit group-data-[role=user]/message:max-w-2xl group-data-[role=user]/message:px-3 group-data-[role=user]/message:py-2",
+          {
+            "group-data-[role=user]/message:bg-muted": true,
+          },
+        )}
+      >
+        <div className="font-outfit my-auto flex w-full items-center gap-[2px] font-medium tracking-tight">
+          <div className="text-info text-lg">AgentDot is thinking</div>
+          <PulseLoader className="mt-1" color="#bebebe" size={4} />
+        </div>
+      </div>
+    </motion.div>
+  );
+}

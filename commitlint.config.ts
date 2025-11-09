@@ -38,6 +38,8 @@ const Configuration: UserConfig = {
       [
         "auth", // Authentication/login/session
         "api", // Backend endpoints or API interactions
+        "ai", // AI-related changes
+        "agent", // Agent-specific changes
         "db", // Database schemas/queries
         "ui", // User interface components
         "layout", // Layout structure or visual changes

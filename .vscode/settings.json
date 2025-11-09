@@ -28,5 +28,13 @@
   },
   "typescript.tsdk": "node_modules/typescript/lib",
   "eslint.useFlatConfig": true,
-  "eslint.ignoreUntitled": true
+  "eslint.ignoreUntitled": true,
+  "cSpell.words": [
+    "lightclient",
+    "nums",
+    "papi",
+    "Polkadot",
+    "smoldot",
+    "westend"
+  ]
 }

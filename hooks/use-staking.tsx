@@ -1,0 +1,357 @@
+"use client";
+
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
+
+import { StakingDescriptors } from "@/lib/polkadot-api";
+import { convertAmountToPlancks } from "@/lib/utils";
+import { useWallet } from "@/providers/wallet-provider";
+import { useClient, useChainId } from "@reactive-dot/react";
+import { chainConfig } from "@/papi-config";
+import { UseChatHelpers } from "@ai-sdk/react";
+import { MultiAddress } from "@polkadot-api/descriptors";
+import { UIMessage } from "ai";
+import { useCallback } from "react";
+import { toast } from "sonner";
+
+export function useStaking() {
+  const client = useClient();
+  const chainId = useChainId();
+  const activeChain =
+    chainConfig.find((chain) => chain.key === chainId) ?? chainConfig[0];
+  const { selectedAccount } = useWallet();
+
+  const bond = useCallback(
+    async ({
+      payee,
+      amount,
+      sendMessage,
+    }: {
+      payee: {
+        type: "Staked" | "Stash" | "Controller" | "Account" | "None";
+        value: string | undefined;
+      };
+      amount: number;
+      sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
+    }) => {
+      if (!selectedAccount) {
+        toast.error("Please connect your wallet first");
+        void sendMessage({
+          role: "assistant",
+          parts: [
+            {
+              type: "text",
+              text: "Please connect your wallet first",
+            },
+          ],
+        });
+      }
+
+      if (selectedAccount && client && activeChain) {
+        const toastId = toast.loading(
+          `Processing the bond transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} to ${payee.type}`,
+        );
+        try {
+          const value = BigInt(
+            convertAmountToPlancks(
+              amount,
+              activeChain.chainSpec.properties.tokenDecimals,
+            ),
+          );
+          const descriptors = activeChain.descriptors as StakingDescriptors;
+          const api = client.getTypedApi(descriptors);
+          if (payee.type === "Account" && payee.value) {
+            const bondTx = api.tx.Staking.bond({
+              payee: { type: "Account", value: payee.value },
+              value,
+            });
+
+            const tx = await bondTx.signAndSubmit(
+              selectedAccount.polkadotSigner,
+            );
+
+            if (!tx.ok) {
+              throw new Error(
+                `${tx.dispatchError.type}: ${JSON.stringify(tx.dispatchError.value, null, 2)}`,
+              );
+            }
+
+            toast.success(
+              `Bond transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} to ${payee.type}: ${payee.value} was successfully submitted. Transaction hash: ${tx.txHash}`,
+              {
+                id: toastId,
+              },
+            );
+
+            void sendMessage({
+              role: "assistant",
+              parts: [
+                {
+                  type: "text",
+                  text: `Bond transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} to ${payee.type}: ${payee.value} was successfully submitted. Transaction hash: ${tx.txHash}`,
+                },
+              ],
+            });
+          }
+
+          if (payee.type !== "Account") {
+            const bondTx = api.tx.Staking.bond({
+              payee: { type: payee.type, value: undefined },
+              value,
+            });
+
+            const tx = await bondTx.signAndSubmit(
+              selectedAccount.polkadotSigner,
+            );
+
+            if (!tx.ok) {
+              throw new Error(
+                `${tx.dispatchError.type}: ${JSON.stringify(tx.dispatchError.value, null, 2)}`,
+              );
+            }
+
+            toast.success(
+              `Bond transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} to ${payee.type} was successfully submitted. Transaction hash: ${tx.txHash}`,
+              {
+                id: toastId,
+              },
+            );
+
+            void sendMessage({
+              role: "assistant",
+              parts: [
+                {
+                  type: "text",
+                  text: `Bond transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} to ${payee.type} was successfully submitted. Transaction hash: ${tx.txHash}`,
+                },
+              ],
+            });
+          }
+        } catch (e) {
+          const errorMessage =
+            e instanceof Error ? e.message : "An unknown error occurred.";
+          toast.error(`Failed to bond: ${errorMessage}`, {
+            id: toastId,
+          });
+        }
+      }
+    },
+    [selectedAccount],
+  );
+
+  const unbond = useCallback(
+    async ({
+      amount,
+      sendMessage,
+    }: {
+      amount: number;
+      sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
+    }) => {
+      if (!selectedAccount) {
+        toast.error("Please connect your wallet first");
+        void sendMessage({
+          role: "assistant",
+          parts: [
+            {
+              type: "text",
+              text: "Please connect your wallet first",
+            },
+          ],
+        });
+      }
+
+      if (selectedAccount && client && activeChain) {
+        const toastId = toast.loading(
+          `Processing the unbonding transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol}`,
+        );
+        try {
+          const value = BigInt(
+            convertAmountToPlancks(
+              amount,
+              activeChain.chainSpec.properties.tokenDecimals,
+            ),
+          );
+          const descriptors = activeChain.descriptors as StakingDescriptors;
+          const api = client.getTypedApi(descriptors);
+          const tx = await api.tx.Staking.unbond({ value }).signAndSubmit(
+            selectedAccount.polkadotSigner,
+          );
+
+          if (!tx.ok) {
+            throw new Error(
+              `${tx.dispatchError.type}: ${JSON.stringify(tx.dispatchError.value, null, 2)}`,
+            );
+          }
+
+          toast.success(
+            `Unbond transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} was successfully submitted. Transaction hash: ${tx.txHash}`,
+            {
+              id: toastId,
+            },
+          );
+
+          void sendMessage({
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: `Unbond transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} was successfully submitted. Transaction hash: ${tx.txHash}`,
+              },
+            ],
+          });
+        } catch (e) {
+          const errorMessage =
+            e instanceof Error ? e.message : "An unknown error occurred.";
+          toast.error(`Failed to unbond: ${errorMessage}`, {
+            id: toastId,
+          });
+        }
+      }
+    },
+    [selectedAccount],
+  );
+
+  const bondExtra = useCallback(
+    async ({
+      amount,
+      sendMessage,
+    }: {
+      amount: number;
+      sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
+    }) => {
+      if (!selectedAccount) {
+        toast.error("Please connect your wallet first");
+        void sendMessage({
+          role: "assistant",
+          parts: [
+            {
+              type: "text",
+              text: "Please connect your wallet first",
+            },
+          ],
+        });
+      }
+
+      if (selectedAccount && client && activeChain) {
+        const toastId = toast.loading(
+          `Processing the bond extra transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol}`,
+        );
+        try {
+          const maxAdditional = BigInt(
+            convertAmountToPlancks(
+              amount,
+              activeChain.chainSpec.properties.tokenDecimals,
+            ),
+          );
+          const descriptors = activeChain.descriptors as StakingDescriptors;
+          const api = client.getTypedApi(descriptors);
+          const tx = await api.tx.Staking.bond_extra({
+            max_additional: maxAdditional,
+          }).signAndSubmit(selectedAccount.polkadotSigner);
+
+          if (!tx.ok) {
+            throw new Error(
+              `${tx.dispatchError.type}: ${JSON.stringify(tx.dispatchError.value, null, 2)}`,
+            );
+          }
+
+          toast.success(
+            `Bond extra transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} was successfully submitted. Transaction hash: ${tx.txHash}`,
+            {
+              id: toastId,
+            },
+          );
+
+          void sendMessage({
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: `Bond extra transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} was successfully submitted. Transaction hash: ${tx.txHash}`,
+              },
+            ],
+          });
+        } catch (e) {
+          const errorMessage =
+            e instanceof Error ? e.message : "An unknown error occurred.";
+          toast.error(`Failed to bond extra: ${errorMessage}`, {
+            id: toastId,
+          });
+        }
+      }
+    },
+    [selectedAccount, client, activeChain],
+  );
+
+  const nominate = useCallback(
+    async ({
+      targets,
+      sendMessage,
+    }: {
+      targets: string[];
+      sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
+    }) => {
+      if (!selectedAccount) {
+        toast.error("Please connect your wallet first");
+        void sendMessage({
+          role: "assistant",
+          parts: [
+            {
+              type: "text",
+              text: "Please connect your wallet first",
+            },
+          ],
+        });
+      }
+
+      if (selectedAccount && client && activeChain) {
+        const toastId = toast.loading(
+          `Processing the nomination transaction of ${targets.length.toFixed(0)} validators on ${activeChain.key} network`,
+        );
+        try {
+          const descriptors = activeChain.descriptors as StakingDescriptors;
+          const api = client.getTypedApi(descriptors);
+          const tx = await api.tx.Staking.nominate({
+            targets: targets.map((target) => MultiAddress.Id(target)),
+          }).signAndSubmit(selectedAccount.polkadotSigner);
+
+          if (!tx.ok) {
+            throw new Error(
+              `${tx.dispatchError.type}: ${JSON.stringify(tx.dispatchError.value, null, 2)}`,
+            );
+          }
+
+          toast.success(
+            `Nomination transaction of ${targets.length.toFixed(0)} validators on ${activeChain.key} was successfully submitted. Transaction hash: ${tx.txHash}`,
+            {
+              id: toastId,
+            },
+          );
+
+          void sendMessage({
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: `Nomination transaction of ${targets.join(", ")} validators on ${activeChain.key} was successfully submitted. Transaction hash: ${tx.txHash}`,
+              },
+            ],
+          });
+        } catch (e) {
+          const errorMessage =
+            e instanceof Error ? e.message : "An unknown error occurred.";
+          toast.error(`Failed to nominate: ${errorMessage}`, {
+            id: toastId,
+          });
+        }
+      }
+    },
+    [selectedAccount],
+  );
+
+  return {
+    bond,
+    bondExtra,
+    unbond,
+    nominate,
+  };
+}

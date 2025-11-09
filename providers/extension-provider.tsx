@@ -27,10 +27,12 @@ interface ExtensionContext {
     extension: InjectedExtension,
   ) => void;
   onToggleExtension: (name: string) => Promise<void>;
+  refreshAllAccounts: () => Promise<void>;
   availableExtensions: string[];
   selectedExtensions: InjectedExtension[];
   isWalletOpen: boolean;
   setIsWalletOpen: (open: boolean) => void;
+  connectedAccounts: InjectedPolkadotAccount[];
 }
 
 interface ExtensionAccount {
@@ -70,6 +72,18 @@ const getExtensionsStore = () => {
     return () => listeners.delete(cb);
   };
 
+  const refreshExtensionAccounts = async (name: string) => {
+    try {
+      const extension = await connectInjectedExtension(name);
+      const accounts = extension.getAccounts();
+      connectedExtensions.set(name, { extension, accounts });
+      update();
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn(`Failed to refresh accounts for ${name}:`, error);
+    }
+  };
+
   const onToggleExtension = async (name: string) => {
     if (isRunning) return;
     isRunning = true;
@@ -77,9 +91,7 @@ const getExtensionsStore = () => {
       if (connectedExtensions.has(name)) {
         connectedExtensions.delete(name);
       } else {
-        const extension = await connectInjectedExtension(name);
-        const accounts = extension.getAccounts();
-        connectedExtensions.set(name, { extension, accounts });
+        await refreshExtensionAccounts(name);
       }
       update();
     } catch (error) {
@@ -104,9 +116,7 @@ const getExtensionsStore = () => {
       extensionNames.map(async (name) => {
         if (connectedExtensions.has(name)) return;
         try {
-          const extension = await connectInjectedExtension(name);
-          const accounts = extension.getAccounts();
-          connectedExtensions.set(name, { extension, accounts });
+          await refreshExtensionAccounts(name);
         } catch (error) {
           const err = error as Error;
           toast.warning(`Failed to connect ${name}: ${err.message}`);
@@ -117,12 +127,22 @@ const getExtensionsStore = () => {
     update();
   };
 
+  const refreshAllAccounts = async () => {
+    const extensionNames = [...connectedExtensions.keys()];
+    await Promise.all(
+      extensionNames.map(async (name) => {
+        await refreshExtensionAccounts(name);
+      }),
+    );
+  };
+
   return {
     subscribe,
     getSnapshot,
     getServerSnapshot: () => serverSnapshot,
     onToggleExtension,
     connectSavedExtensions,
+    refreshAllAccounts,
   };
 };
 
@@ -133,7 +153,7 @@ const getJoinedInjectedExtensions = async (): Promise<string> => {
   return getInjectedExtensions().join(",");
 };
 
-export const ExtenstionContext = createContext<ExtensionContext>({
+export const ExtensionContext = createContext<ExtensionContext>({
   isInitializing: true,
   isWalletOpen: false,
   setIsWalletOpen: () => {
@@ -144,8 +164,10 @@ export const ExtenstionContext = createContext<ExtensionContext>({
     // noop
   },
   onToggleExtension: () => Promise.resolve(),
+  refreshAllAccounts: () => Promise.resolve(),
   availableExtensions: [],
   selectedExtensions: [],
+  connectedAccounts: [],
 });
 
 export function ExtensionProvider({ children }: { children: ReactNode }) {
@@ -215,6 +237,7 @@ export function ExtensionProvider({ children }: { children: ReactNode }) {
           .split(",")
           .map((e) => e.trim())
           .filter(Boolean);
+
         setAvailableExtensions(list);
 
         await extensionsStore.connectSavedExtensions();
@@ -239,8 +262,29 @@ export function ExtensionProvider({ children }: { children: ReactNode }) {
     }
   }, [selectedExtensions, restoreSelectedAccount]);
 
+  useEffect(() => {
+    const refreshAccounts = () => {
+      if (selectedExtensions.size > 0) {
+        void extensionsStore.refreshAllAccounts();
+      }
+    };
+
+    const interval = setInterval(refreshAccounts, 30000);
+
+    const handleFocus = () => {
+      refreshAccounts();
+    };
+
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [selectedExtensions.size]);
+
   return (
-    <ExtenstionContext.Provider
+    <ExtensionContext.Provider
       value={{
         isWalletOpen,
         setIsWalletOpen,
@@ -248,13 +292,17 @@ export function ExtensionProvider({ children }: { children: ReactNode }) {
         selectedAccount,
         setSelectedAccount,
         onToggleExtension: extensionsStore.onToggleExtension,
+        refreshAllAccounts: extensionsStore.refreshAllAccounts,
         availableExtensions,
         selectedExtensions: [...selectedExtensions.values()].map(
           (ext) => ext.extension,
         ),
+        connectedAccounts: [...selectedExtensions.values()].flatMap(
+          (ext) => ext.accounts,
+        ),
       }}
     >
       {children}
-    </ExtenstionContext.Provider>
+    </ExtensionContext.Provider>
   );
 }
