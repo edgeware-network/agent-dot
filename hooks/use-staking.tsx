@@ -132,6 +132,15 @@ export function useStaking() {
           toast.error(`Failed to bond: ${errorMessage}`, {
             id: toastId,
           });
+          void sendMessage({
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: `Failed to bond: ${errorMessage}. Please check your balance, ensure you're on the correct AssetHub chain, and verify all parameters are correct.`,
+              },
+            ],
+          });
         }
       }
     },
@@ -203,6 +212,15 @@ export function useStaking() {
             e instanceof Error ? e.message : "An unknown error occurred.";
           toast.error(`Failed to unbond: ${errorMessage}`, {
             id: toastId,
+          });
+          void sendMessage({
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: `Failed to unbond: ${errorMessage}. Please check that you have sufficient bonded amount and are on the correct AssetHub chain.`,
+              },
+            ],
           });
         }
       }
@@ -276,6 +294,15 @@ export function useStaking() {
           toast.error(`Failed to bond extra: ${errorMessage}`, {
             id: toastId,
           });
+          void sendMessage({
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: `Failed to bond extra: ${errorMessage}. Please check your balance and ensure you have an existing bond on the correct AssetHub chain.`,
+              },
+            ],
+          });
         }
       }
     },
@@ -341,6 +368,15 @@ export function useStaking() {
             e instanceof Error ? e.message : "An unknown error occurred.";
           toast.error(`Failed to nominate: ${errorMessage}`, {
             id: toastId,
+          });
+          void sendMessage({
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: `Failed to nominate validators: ${errorMessage}. Please check that you have bonded stake, the validator addresses are valid, and you're on the correct AssetHub chain.`,
+              },
+            ],
           });
         }
       }
