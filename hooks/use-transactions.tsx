@@ -148,8 +148,9 @@ export function useTransactions() {
           amount,
           TOKEN_DECIMALS[symbol],
         );
+        let builder: any = null;
         try {
-          const builder = Builder()
+          builder = Builder()
             .from(src)
             .to(dst)
             .currency({ symbol: symbol, amount: amountInPlancks })
@@ -241,8 +242,9 @@ export function useTransactions() {
           amount,
           TOKEN_DECIMALS[symbol],
         );
+        let builder: any = null;
         try {
-          const builder = Builder()
+          builder = Builder()
             .from(src)
             .to(dst)
             .currency({ amount: amountInPlancks, id })

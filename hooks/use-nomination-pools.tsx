@@ -4,11 +4,11 @@
 
 import { StakingDescriptors } from "@/lib/polkadot-api";
 import { convertAmountToPlancks } from "@/lib/utils";
-import { useWallet } from "@/providers/wallet-provider";
-import { useClient, useChainId } from "@reactive-dot/react";
 import { chainConfig } from "@/papi-config";
+import { useWallet } from "@/providers/wallet-provider";
 import { UseChatHelpers } from "@ai-sdk/react";
 import { MultiAddress } from "@polkadot-api/descriptors";
+import { useChainId, useClient } from "@reactive-dot/react";
 import { UIMessage } from "ai";
 import { useCallback } from "react";
 import { toast } from "sonner";
@@ -88,6 +88,15 @@ export function useNominationPools() {
           const err = error as Error;
           toast.error(`Failed to join Nomination Pool: ${err.message}`, {
             id: toastId,
+          });
+          void sendMessage({
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: `Failed to join nomination pool: ${err.message}. Please check your balance, ensure you're on the correct AssetHub chain, and verify the pool ID is valid.`,
+              },
+            ],
           });
         }
       }
@@ -195,6 +204,15 @@ export function useNominationPools() {
               id: toastId,
             },
           );
+          void sendMessage({
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: `Failed to bond extra to nomination pool: ${err.message}. Please check your balance, ensure you're a member of a pool, and verify you're on the correct AssetHub chain.`,
+              },
+            ],
+          });
         }
       }
     },
@@ -269,6 +287,15 @@ export function useNominationPools() {
           const err = error as Error;
           toast.error(`Failed to unbond from Nomination Pool: ${err.message}`, {
             id: toastId,
+          });
+          void sendMessage({
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: `Failed to unbond from nomination pool: ${err.message}. Please check that you're a member of a pool, have sufficient bonded amount, and are on the correct AssetHub chain.`,
+              },
+            ],
           });
         }
       }
