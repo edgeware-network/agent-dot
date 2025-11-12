@@ -1,8 +1,9 @@
 import { hexToU8a, isHex } from "@polkadot/util";
-import { decodeAddress } from "@polkadot/util-crypto";
+import { decodeAddress, encodeAddress } from "@polkadot/util-crypto";
 import { clsx, type ClassValue } from "clsx";
 import { customAlphabet } from "nanoid";
 import { twMerge } from "tailwind-merge";
+import { chainConfig } from "@/papi-config";
 
 export interface FormatCurrencyOptions {
   nDecimals: number;
@@ -98,4 +99,58 @@ export function getSubscanSubdomain(chain: string): string {
     }
   }
   return chain.toLowerCase();
+}
+
+/**
+ * Converts an SS58 address to the format required by the target chain.
+ * Different chains use different SS58 prefixes:
+ * - Polkadot: prefix 0 (addresses start with "1")
+ * - Paseo: prefix 0 (addresses start with "1")
+ * - Westend: prefix 42 (addresses start with "5")
+ * - AssetHub chains: same as their relay chain
+ */
+export function convertAddressToChainFormat(
+  address: string,
+  targetChainName: string,
+): string {
+  try {
+    // Decode the address to get the raw bytes
+    const decoded = decodeAddress(address);
+
+    // Find the target chain config
+    const targetChain = chainConfig.find(
+      (chain) => chain.name.toLowerCase() === targetChainName.toLowerCase(),
+    );
+
+    if (!targetChain) {
+      // If chain not found, return original address
+      return address;
+    }
+
+    // Get SS58 prefix from chain spec
+    // Polkadot and Paseo use prefix 0, Westend uses prefix 42
+    let ss58Prefix: number;
+    if (
+      targetChain.name === "Polkadot" ||
+      targetChain.name === "Polkadot AssetHub" ||
+      targetChain.name === "Paseo" ||
+      targetChain.name === "Paseo AssetHub"
+    ) {
+      ss58Prefix = 0;
+    } else if (
+      targetChain.name === "Westend" ||
+      targetChain.name === "Westend AssetHub"
+    ) {
+      ss58Prefix = 42;
+    } else {
+      // Default to Polkadot prefix if unknown
+      ss58Prefix = 0;
+    }
+
+    // Encode with the target chain's prefix
+    return encodeAddress(decoded, ss58Prefix);
+  } catch {
+    // If conversion fails, return original address
+    return address;
+  }
 }

@@ -7,6 +7,7 @@ import {
   getSessionValidators,
   StakingDescriptors,
 } from "@/lib/polkadot-api";
+import { convertAddressToChainFormat } from "@/lib/utils";
 import { ChainConfig, chainConfig } from "@/papi-config";
 import type { WalletAccount } from "@/providers/wallet-provider";
 import {
@@ -161,13 +162,22 @@ export async function onChatToolCall({
       return;
     }
 
-    const balance = await getAccountBalance(
+    // Convert address to the active chain's format
+    const activeChain = activeChainRef.current;
+    const convertedAddress = convertAddressToChainFormat(
       active.address,
+      activeChain.name,
+    );
+    const tokenSymbol = activeChain.chainSpec.properties.tokenSymbol;
+
+    const balance = await getAccountBalance(
+      active.address, // Use original address for balance query
       apiRef,
       activeChainRef,
     );
 
-    const text = `Name: ${active.name ?? "Unknown"}\nAddress: ${active.address}\nBalance: ${balance}`;
+    const text = `Network: ${activeChain.name}\nToken: ${tokenSymbol}\nName: ${active.name ?? "Unknown"}\nAddress: ${convertedAddress}\nBalance: ${balance}`;
+
     addToolResult({
       tool: toolCall.toolName,
       toolCallId: toolCall.toolCallId,
@@ -176,23 +186,47 @@ export async function onChatToolCall({
   }
 
   if (toolCall.toolName === "getConnectedAccounts") {
+    const activeChain = activeChainRef.current;
+    const tokenSymbol = activeChain.chainSpec.properties.tokenSymbol;
+
+    // Convert all addresses to the active chain's format
     const accounts = connectedAccountsRef.current.map((account) => ({
       name: account.name,
-      address: account.address,
+      address: convertAddressToChainFormat(account.address, activeChain.name),
     }));
 
     addToolResult({
       tool: toolCall.toolName,
       toolCallId: toolCall.toolCallId,
-      output: JSON.stringify(accounts),
+      output: JSON.stringify({
+        network: activeChain.name,
+        token: tokenSymbol,
+        accounts,
+      }),
     });
   }
 
   if (toolCall.toolName === "getActiveAccount") {
     const active = resolveActiveSelection();
-    const text = active?.address
-      ? `Name: ${active.name ?? "Unknown"}\nAddress: ${active.address}`
-      : "No account selected. Please connect a wallet first.";
+
+    if (!active?.address) {
+      addToolResult({
+        tool: toolCall.toolName,
+        toolCallId: toolCall.toolCallId,
+        output: "No account selected. Please connect a wallet first.",
+      });
+      return;
+    }
+
+    // Convert address to the active chain's format
+    const activeChain = activeChainRef.current;
+    const convertedAddress = convertAddressToChainFormat(
+      active.address,
+      activeChain.name,
+    );
+    const tokenSymbol = activeChain.chainSpec.properties.tokenSymbol;
+
+    const text = `Network: ${activeChain.name}\nToken: ${tokenSymbol}\nName: ${active.name ?? "Unknown"}\nAddress: ${convertedAddress}`;
 
     addToolResult({
       tool: toolCall.toolName,

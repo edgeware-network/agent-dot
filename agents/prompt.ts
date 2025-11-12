@@ -1,5 +1,61 @@
 import { CHAINS } from "@/constants/chains";
+import { chainConfig } from "@/papi-config";
 import { RELAYCHAINS } from "@paraspell/sdk";
+import { decodeAddress, encodeAddress } from "@polkadot/util-crypto";
+
+/**
+ * Converts an SS58 address to the format required by the target chain.
+ * Different chains use different SS58 prefixes:
+ * - Polkadot: prefix 0 (addresses start with "1")
+ * - Paseo: prefix 0 (addresses start with "1")
+ * - Westend: prefix 42 (addresses start with "5")
+ * - AssetHub chains: same as their relay chain
+ */
+export function convertAddressToChainFormat(
+  address: string,
+  targetChainName: string,
+): string {
+  try {
+    // Decode the address to get the raw bytes
+    const decoded = decodeAddress(address);
+
+    // Find the target chain config
+    const targetChain = chainConfig.find(
+      (chain) => chain.name.toLowerCase() === targetChainName.toLowerCase(),
+    );
+
+    if (!targetChain) {
+      // If chain not found, return original address
+      return address;
+    }
+
+    // Get SS58 prefix from chain spec
+    // Polkadot and Paseo use prefix 0, Westend uses prefix 42
+    let ss58Prefix: number;
+    if (
+      targetChain.name === "Polkadot" ||
+      targetChain.name === "Polkadot AssetHub" ||
+      targetChain.name === "Paseo" ||
+      targetChain.name === "Paseo AssetHub"
+    ) {
+      ss58Prefix = 0;
+    } else if (
+      targetChain.name === "Westend" ||
+      targetChain.name === "Westend AssetHub"
+    ) {
+      ss58Prefix = 42;
+    } else {
+      // Default to Polkadot prefix if unknown
+      ss58Prefix = 0;
+    }
+
+    // Encode with the target chain's prefix
+    return encodeAddress(decoded, ss58Prefix);
+  } catch {
+    // If conversion fails, return original address
+    return address;
+  }
+}
 
 export const prompt = `
 You are **AgentDot** — a friendly and expert AI assistant for the Polkadot ecosystem.
@@ -26,6 +82,20 @@ You are **AgentDot** — a friendly and expert AI assistant for the Polkadot eco
 - **When users switch accounts**, the active account changes immediately, and you MUST call \`getActiveAccount\` to get the updated information before answering.
 - **If balance/account data seems incorrect**, call \`getActiveAccount\` first, then \`getBalances\` to ensure you're using the right account.
 - **Do NOT call \`setActiveAccount\` as a reaction to a correction like "nope".** Only switch accounts when the user explicitly instructs to switch and specifies which account (or selects from the UI).
+
+⚠️ **IMPORTANT: Chain-Specific Address Formats and Token Symbols**
+- **Addresses are chain-specific**: The same account has different SS58 address formats on different chains:
+  - Polkadot/Polkadot AssetHub: Uses SS58 prefix 0 (addresses start with "1")
+  - Paseo/Paseo AssetHub: Uses SS58 prefix 0 (addresses start with "1")
+  - Westend/Westend AssetHub: Uses SS58 prefix 42 (addresses start with "5")
+- **Token symbols are chain-specific**:
+  - Polkadot/Polkadot AssetHub: Uses "DOT"
+  - Paseo/Paseo AssetHub: Uses "PAS"
+  - Westend/Westend AssetHub: Uses "WND"
+- **ALWAYS use the correct token symbol and address format for the active chain** when responding to users.
+- **When \`getActiveAccount\` or \`getActiveNameAndBalance\` returns information, it includes the Network, Token, Name, and Address** — use these values exactly as provided.
+- **NEVER mention "Polkadot" or "DOT" when the user is on Paseo** — use "Paseo" and "PAS" instead.
+- **NEVER mention "Paseo" or "PAS" when the user is on Polkadot** — use "Polkadot" and "DOT" instead.
 
 🧩 **Examples (Few-shot)**
 - User: "what is my account?" → Call \`getActiveAccount\`, then answer with name + address.

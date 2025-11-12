@@ -4,8 +4,9 @@ import { NavigationButton } from "@/components/account/navigation-button";
 import { Identicon } from "@/components/identicon";
 import { Button } from "@/components/ui/button";
 import { ViewNavigationProps } from "@/components/ui/multi-view-dialog";
-import { trimAddress } from "@/lib/utils";
+import { convertAddressToChainFormat, trimAddress } from "@/lib/utils";
 import { useWallet } from "@/providers/wallet-provider";
+import { useRefObject } from "@/hooks/use-ref-object";
 import { MdOutlineKeyboardDoubleArrowLeft } from "react-icons/md";
 import { RiWalletLine } from "react-icons/ri";
 
@@ -30,6 +31,7 @@ function AccountInfo({ address, name }: { address: string; name: string }) {
 export default function ViewSelectAccount({ previous }: ViewNavigationProps) {
   const { allAccounts, setSelectedAccount, setIsWalletOpen, connectedWallets } =
     useWallet();
+  const { activeChainRef } = useRefObject();
 
   // Group accounts by wallet
   const accountsByWallet = connectedWallets.map((wallet) => ({
@@ -47,21 +49,28 @@ export default function ViewSelectAccount({ previous }: ViewNavigationProps) {
       <div className="flex max-h-[45vh] grow flex-col gap-2 overflow-y-auto px-2 sm:max-h-[70vh]">
         {accountsByWallet.map(({ wallet, accounts }) => (
           <div key={wallet.id} className="flex flex-col gap-2">
-            {accounts.map((account) => (
-              <Button
-                key={account.address}
-                className="font-manrope bg-background/10 border-border h-14 w-full cursor-pointer rounded-[0.6rem] border-2 p-2 hover:bg-[#252525]/50"
-                onClick={() => {
-                  setSelectedAccount(account);
-                  setIsWalletOpen(false);
-                }}
-              >
-                <AccountInfo
-                  address={account.address}
-                  name={account.name ?? account.address}
-                />
-              </Button>
-            ))}
+            {accounts.map((account) => {
+              // Convert address to active chain format for display
+              const displayAddress = convertAddressToChainFormat(
+                account.address,
+                activeChainRef.current.name,
+              );
+              return (
+                <Button
+                  key={account.address}
+                  className="font-manrope bg-background/10 border-border h-14 w-full cursor-pointer rounded-[0.6rem] border-2 p-2 hover:bg-[#252525]/50"
+                  onClick={() => {
+                    setSelectedAccount(account);
+                    setIsWalletOpen(false);
+                  }}
+                >
+                  <AccountInfo
+                    address={displayAddress}
+                    name={account.name ?? account.address}
+                  />
+                </Button>
+              );
+            })}
           </div>
         ))}
       </div>

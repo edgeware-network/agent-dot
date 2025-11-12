@@ -4,7 +4,8 @@ import { ViewSelectAccount, ViewSelectWallet } from "@/components/account";
 import { Identicon } from "@/components/identicon";
 import { Button } from "@/components/ui/button";
 import { DialogView, MultiViewDialog } from "@/components/ui/multi-view-dialog";
-import { trimAddress } from "@/lib/utils";
+import { useRefObject } from "@/hooks/use-ref-object";
+import { convertAddressToChainFormat, trimAddress } from "@/lib/utils";
 import { useWallet } from "@/providers/wallet-provider";
 
 function Wallet({ address, name }: { address: string; name: string }) {
@@ -24,8 +25,17 @@ function Wallet({ address, name }: { address: string; name: string }) {
 
 export default function ConnectButton() {
   const { selectedAccount, connectedWallets } = useWallet();
+  const { activeChainRef } = useRefObject();
 
   const hasConnectedWallets = connectedWallets.length > 0;
+
+  // Convert address to active chain format for display
+  const displayAddress = selectedAccount?.address
+    ? convertAddressToChainFormat(
+        selectedAccount.address,
+        activeChainRef.current.name,
+      )
+    : undefined;
 
   const views: DialogView[] = [
     {
@@ -52,11 +62,8 @@ export default function ConnectButton() {
         initialView={hasConnectedWallets ? 1 : 0}
         trigger={
           <div className="flex items-center gap-2">
-            {selectedAccount?.name && (
-              <Wallet
-                address={selectedAccount.address}
-                name={selectedAccount.name}
-              />
+            {selectedAccount?.name && displayAddress && (
+              <Wallet address={displayAddress} name={selectedAccount.name} />
             )}
             {!selectedAccount?.address && (
               <span className="truncate sm:block">Connect</span>
@@ -65,9 +72,9 @@ export default function ConnectButton() {
         }
         views={views}
       />
-      {selectedAccount?.address && (
+      {displayAddress && (
         <Identicon
-          value={selectedAccount.address}
+          value={displayAddress}
           size={30}
           className="[&>svg>circle:first-child]:fill-none"
         />
