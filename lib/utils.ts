@@ -1,9 +1,9 @@
+import { chainConfig } from "@/papi-config";
 import { hexToU8a, isHex } from "@polkadot/util";
 import { decodeAddress, encodeAddress } from "@polkadot/util-crypto";
 import { clsx, type ClassValue } from "clsx";
 import { customAlphabet } from "nanoid";
 import { twMerge } from "tailwind-merge";
-import { chainConfig } from "@/papi-config";
 
 export interface FormatCurrencyOptions {
   nDecimals: number;

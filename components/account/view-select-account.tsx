@@ -4,9 +4,9 @@ import { NavigationButton } from "@/components/account/navigation-button";
 import { Identicon } from "@/components/identicon";
 import { Button } from "@/components/ui/button";
 import { ViewNavigationProps } from "@/components/ui/multi-view-dialog";
+import { useRefObject } from "@/hooks/use-ref-object";
 import { convertAddressToChainFormat, trimAddress } from "@/lib/utils";
 import { useWallet } from "@/providers/wallet-provider";
-import { useRefObject } from "@/hooks/use-ref-object";
 import { MdOutlineKeyboardDoubleArrowLeft } from "react-icons/md";
 import { RiWalletLine } from "react-icons/ri";
 
