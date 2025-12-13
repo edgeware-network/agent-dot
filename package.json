@@ -57,7 +57,7 @@
     "lucide-react": "^0.539.0",
     "marked": "^16.1.2",
     "nanoid": "^5.1.5",
-    "next": "15.4.6",
+    "next": "15.4.10",
     "pino": "^9.8.0",
     "polkadot-api": "^1.20.0",
     "postgres": "^3.4.7",
