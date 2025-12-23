@@ -80,7 +80,6 @@ function WalletProviderInner({
   const [isWalletOpen, setIsWalletOpen] = useState(false);
   const autoConnectAttemptedRef = useRef(false);
   const restoreAttemptedRef = useRef(false);
-  const disconnectingRef = useRef<string | null>(null);
   const hasCheckedInitialization = useRef(false);
 
   // Convert @reactive-dot accounts to our WalletAccount format
@@ -139,47 +138,29 @@ function WalletProviderInner({
 
   const handleDisconnectWallet = useCallback(
     async (wallet: Wallet) => {
-      // Prevent multiple simultaneous disconnect operations
-      if (disconnectingRef.current === wallet.id) {
-        return;
-      }
+      // Defer to next event loop tick to prevent blocking UI
+      return new Promise<void>((resolve) => {
+        setTimeout(() => {
+          void (async () => {
+            try {
+              await disconnectWallet(wallet);
 
-      disconnectingRef.current = wallet.id;
-
-      try {
-        // Add timeout to prevent hanging
-        const disconnectPromise = disconnectWallet(wallet);
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => {
-            reject(new Error("Disconnect timeout"));
-          }, 5000);
-        });
-
-        await Promise.race([disconnectPromise, timeoutPromise]);
-
-        // If the disconnected wallet had the selected account, clear it
-        if (selectedAccount?.wallet.id === wallet.id) {
-          setSelectedAccountState(null);
-          localStorage.removeItem(SELECTED_ACCOUNT_KEY);
-        }
-      } catch (error) {
-        const err = error as Error;
-        // Try alternative disconnect method if primary fails
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-          if ((wallet as any).disconnect) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-            await (wallet as any).disconnect();
-          }
-        } catch {
-          // Ignore secondary disconnect errors
-        }
-        toast.error(
-          `Failed to disconnect ${wallet.name}: ${err.message || "Unknown error"}`,
-        );
-      } finally {
-        disconnectingRef.current = null;
-      }
+              // If the disconnected wallet had the selected account, clear it
+              if (selectedAccount?.wallet.id === wallet.id) {
+                setSelectedAccountState(null);
+                localStorage.removeItem(SELECTED_ACCOUNT_KEY);
+              }
+              resolve();
+            } catch (error) {
+              const err = error as Error;
+              toast.error(
+                `Failed to disconnect ${wallet.name}: ${err.message || "Unknown error"}`,
+              );
+              resolve();
+            }
+          })();
+        }, 0);
+      });
     },
     [disconnectWallet, selectedAccount],
   );

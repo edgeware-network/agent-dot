@@ -30,7 +30,8 @@ export interface XcmTransaction {
   dst: TSubstrateChain;
   amount: number;
   sender: string;
-  symbol: string;
+  symbol: "DOT" | "WND" | "PAS"; // Narrowed type
+  recipient: string;
 }
 
 export interface XcmStablecoinTransaction {

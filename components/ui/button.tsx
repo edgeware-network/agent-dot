@@ -46,12 +46,18 @@ function Button({
   }) {
   const Comp = asChild ? Slot : "button";
 
+  // Exclude React 19 popover prop that Radix UI Slot doesn't accept
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { popover: _popover, ...restProps } = props as {
+    popover?: unknown;
+    [key: string]: unknown;
+  };
+
   return (
-    // @ts-expect-error - Radix UI Slot popover prop type compatibility
     <Comp
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
+      {...restProps}
     />
   );
 }

@@ -88,17 +88,37 @@ export function isValidEthereumAddress(address: string) {
 }
 
 export function getSubscanSubdomain(chain: string): string {
-  const relays = ["Polkadot", "Westend", "Paseo", "Kusama"];
-  for (const relay of relays) {
-    if (chain.endsWith(relay)) {
-      if (chain === relay) {
-        return relay.toLowerCase();
+  const normalizedChain = chain.trim();
+
+  // Handle AssetHub chains - format: "assethub-{relay}"
+  if (normalizedChain.includes("AssetHub")) {
+    const relays = ["Polkadot", "Westend", "Paseo", "Kusama"];
+    for (const relay of relays) {
+      if (normalizedChain.includes(relay)) {
+        return `assethub-${relay.toLowerCase()}`;
       }
-      const prefix = chain.substring(0, chain.length - relay.length);
-      return `${prefix.toLowerCase()}-${relay.toLowerCase()}`;
     }
   }
-  return chain.toLowerCase();
+
+  // Handle regular relay chains
+  const relays = ["Polkadot", "Westend", "Paseo", "Kusama"];
+  for (const relay of relays) {
+    if (normalizedChain.endsWith(relay)) {
+      if (normalizedChain === relay) {
+        return relay.toLowerCase();
+      }
+      const prefix = normalizedChain.substring(
+        0,
+        normalizedChain.length - relay.length,
+      );
+      // Replace spaces with hyphens in prefix
+      const cleanPrefix = prefix.trim().replace(/\s+/g, "-").replace(/-+$/, "");
+      return `${cleanPrefix.toLowerCase()}-${relay.toLowerCase()}`;
+    }
+  }
+
+  // Fallback: replace spaces with hyphens
+  return normalizedChain.replace(/\s+/g, "-").toLowerCase();
 }
 
 /**

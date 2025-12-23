@@ -73,11 +73,11 @@ export default function ViewSelectWallet({ next }: ViewNavigationProps) {
                 </div>
                 <div className="text-info text-xs font-medium tracking-tight">
                   {isConnected ? (
-                    <span className="font-manrope text-tertiary bg-tertiary/10 rounded-sm px-6 py-1 text-xs font-medium tracking-tight">
+                    <span className="font-manrope text-tertiary bg-tertiary/10 flex items-center justify-center rounded-sm px-6 py-1 text-xs font-medium tracking-tight">
                       Disconnect
                     </span>
                   ) : (
-                    <span className="font-manrope text-primary bg-primary/10 rounded-sm px-8 py-1 text-xs font-medium tracking-tight">
+                    <span className="font-manrope text-primary bg-primary/10 flex items-center justify-center rounded-sm px-8 py-1 text-xs font-medium tracking-tight">
                       Connect
                     </span>
                   )}

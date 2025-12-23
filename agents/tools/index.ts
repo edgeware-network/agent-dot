@@ -34,3 +34,5 @@ export {
 } from "@/agents/tools/nomination-pools-agent";
 
 export { getTeleportRoutes } from "@/agents/tools/routes-agent";
+
+export { batchAgent, batchAllAgent } from "@/agents/tools/utility-agent";

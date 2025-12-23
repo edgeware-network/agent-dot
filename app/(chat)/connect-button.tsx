@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { DialogView, MultiViewDialog } from "@/components/ui/multi-view-dialog";
 import { useAccountBalance } from "@/hooks/use-account-balance";
 import { useRefObject } from "@/hooks/use-ref-object";
-import { convertAddressToChainFormat, trimAddress } from "@/lib/utils";
+import { cn, convertAddressToChainFormat, trimAddress } from "@/lib/utils";
 import { useWallet } from "@/providers/wallet-provider";
 
 function Wallet({
@@ -76,7 +76,12 @@ export default function ConnectButton() {
       <MultiViewDialog
         initialView={hasConnectedWallets ? 1 : 0}
         trigger={
-          <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div
+            className={cn(
+              "flex min-w-0 flex-1 items-center gap-2",
+              !selectedAccount?.address && "justify-center",
+            )}
+          >
             {selectedAccount?.name && displayAddress && (
               <Wallet
                 address={displayAddress}

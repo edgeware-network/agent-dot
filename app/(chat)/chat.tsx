@@ -100,6 +100,7 @@ export default function Chat() {
           messages={messages}
           status={status}
           sendMessage={preSendMessage}
+          addToolResult={addToolResult}
         />
         <PromptInputForm
           sendMessage={preSendMessage}

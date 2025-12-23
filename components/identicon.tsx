@@ -47,7 +47,10 @@ function Icon({
 
   return (
     <div
-      onClick={copyToClipboard}
+      onClick={(e) => {
+        e.stopPropagation();
+        copyToClipboard();
+      }}
       className="flex items-center justify-center hover:cursor-copy"
     >
       <svg

@@ -11,7 +11,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "baseUrl": ".",
     "plugins": [
@@ -68,7 +68,8 @@
     ".next/types/**/*.ts",
     "eslint.config.mjs",
     "postcss.config.mjs",
-    ".papi/**/*"
+    ".papi/**/*",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }
