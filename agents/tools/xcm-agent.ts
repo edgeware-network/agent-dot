@@ -8,6 +8,7 @@ import {
 } from "@paraspell/sdk";
 import { tool } from "ai";
 import z from "zod";
+import { CHAINS } from "@/constants/chains";
 
 const getAvailableSystemChains = tool({
   name: "getAvailableSystemChains",
@@ -47,7 +48,7 @@ type XcmAgentInput = z.infer<typeof _xcmAgentInputSchema>;
 const xcmAgent = tool({
   name: "xcmAgent",
   description:
-    "Prepare and confirm an XCM transaction to teleport tokens on the Polkadot, Westend and Paseo network.",
+    "Prepare and confirm a SINGLE XCM transaction to teleport tokens on the Polkadot, Westend and Paseo network. **NEVER use this tool for multiple teleports** - if the user requests multiple teleports (e.g., 'teleport X to A and teleport Y to B'), you MUST use `batchAgent` or `batchAllAgent` instead. This tool is ONLY for single teleport transactions.",
   // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     src: z.string().describe("The source network/chain to teleport from."),
@@ -68,8 +69,8 @@ const xcmAgent = tool({
   outputSchema: z.object({
     tx: z
       .object({
-        src: z.enum(SUBSTRATE_CHAINS),
-        dst: z.enum(SUBSTRATE_CHAINS),
+        src: z.string(),
+        dst: z.string(),
         amount: z.number(),
         symbol: z.enum(["DOT", "WND", "PAS"]),
         sender: z.string(),
@@ -83,12 +84,45 @@ const xcmAgent = tool({
   execute: async (input: XcmAgentInput) => {
     const { src, dst, amount, symbol, sender, recipient } = input;
     try {
+      // Step 1: Validate that the provided chain names are valid, user-friendly names
+      const validSourceChains = Object.keys(CHAINS[symbol]);
+      const validDestinationChains = Object.keys(CHAINS[symbol]);
+
+      if (
+        !validSourceChains.some(
+          (chain) => chain.toLowerCase() === src.toLowerCase(),
+        )
+      ) {
+        return {
+          message: `Invalid source chain: '${src}'. Please use one of the following: ${validSourceChains.join(", ")}`,
+        };
+      }
+
+      if (
+        !validDestinationChains.some(
+          (chain) => chain.toLowerCase() === dst.toLowerCase(),
+        )
+      ) {
+        return {
+          message: `Invalid destination chain: '${dst}'. Please use one of the following: ${validDestinationChains.join(", ")}`,
+        };
+      }
+
+      // Step 2: Get the node names (system names) for the chains
       const srcNodeName = getNodeName({ name: src, symbol });
       const dstNodeName = getNodeName({ name: dst, symbol });
 
       if (!srcNodeName || !dstNodeName) {
         return {
-          message: "Invalid source or destination network/chain.",
+          message:
+            "Could not resolve provided chain names to internal node names.",
+        };
+      }
+
+      // Step 3: Block teleports where source and destination are the same
+      if (srcNodeName === dstNodeName) {
+        return {
+          message: `Invalid teleport: The source and destination chains cannot be the same. Both were resolved to '${srcNodeName}'.`,
         };
       }
 
@@ -126,8 +160,8 @@ const xcmAgent = tool({
 
       return {
         tx: {
-          src: srcNodeName,
-          dst: dstNodeName,
+          src, // Return the original user-friendly name
+          dst, // Return the original user-friendly name
           amount,
           sender,
           symbol,
@@ -136,8 +170,8 @@ const xcmAgent = tool({
         message: `
         Summary
         ---
-        Source: ${srcNodeName}
-        Destination: ${dstNodeName}
+        Source: ${src}
+        Destination: ${dst}
         Amount: ${amount.toFixed(3)} ${symbol}
         Sender: ${sender}
         Recipient: ${recipientAddress}

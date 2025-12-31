@@ -50,7 +50,7 @@ type BondAgentInput = z.infer<typeof _bondAgentInputSchema>;
 export const bondAgent = tool({
   name: "bondAgent",
   description:
-    "Bond tokens for staking on a Proof-of-Stake network within the Polkadot ecosystem. IMPORTANT: Staking locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as staking has migrated there. This locks a specified amount of tokens from a stash account and sets a controller account to manage staking operations, as well as defining how staking rewards will be received.",
+    "Bond tokens for staking on a Proof-of-Stake network within the Polkadot ecosystem. IMPORTANT: Staking locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as staking has migrated there. This locks a specified amount of tokens from a stash account and sets a controller account to manage staking operations, as well as defining how staking rewards will be received. **CRITICAL WARNING: If the user requests multiple actions with 'batch' or 'batchAll' (e.g., 'transfer X and bond Y, batchAll them'), DO NOT use this tool. Instead, use batchAgent or batchAllAgent with the appropriate transaction types (e.g., {type: 'bond', ...}).**",
   // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     stashAccount: z
@@ -206,7 +206,7 @@ type BondExtraAgentInput = z.infer<typeof _bondExtraAgentInputSchema>;
 export const bondExtraAgent = tool({
   name: "bondExtraAgent",
   description:
-    "Add more tokens to an existing bonded stake for staking on a Proof-of-Stake network within the Polkadot ecosystem. IMPORTANT: Staking locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as staking has migrated there. This increases the amount of tokens already locked in the stash account without changing the controller or reward destination. Use this when the account already has bonded tokens and wants to stake more.",
+    "Add more tokens to an existing bonded stake for staking on a Proof-of-Stake network within the Polkadot ecosystem. **CRITICAL: Do NOT use this for nomination pools. Only for direct staking.** IMPORTANT: Staking locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as staking has migrated there. This increases the amount of tokens already locked in the stash account without changing the controller or reward destination. Use this when the account already has bonded tokens and wants to stake more. **CRITICAL WARNING: If the user requests multiple actions with 'batch' or 'batchAll' (e.g., 'nominate X Y Z and bond extra Y, batchAll them'), DO NOT use this tool. Instead, use batchAgent or batchAllAgent with the appropriate transaction types (e.g., {type: 'bondExtra', ...}).**",
   // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     controllerAccount: z
@@ -342,7 +342,7 @@ type NominateAgentInput = z.infer<typeof _nominateAgentInputSchema>;
 export const nominateAgent = tool({
   name: "nominateAgent",
   description:
-    "Nominate a list of validators to stake tokens with on a network within the Polkadot ecosystem. IMPORTANT: Staking locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as staking has migrated there. This action registers your intention to stake with specific validators and is essential for earning staking rewards. The maximum number of nominators varies by network.",
+    "Nominate a list of validators to stake tokens with on a network within the Polkadot ecosystem. IMPORTANT: Staking locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as staking has migrated there. This action registers your intention to stake with specific validators and is essential for earning staking rewards. The maximum number of nominators varies by network. **CRITICAL WARNING: If the user requests multiple actions with 'batch' or 'batchAll' (e.g., 'nominate X Y Z and unbond 5 pas, batchAll them'), DO NOT use this tool. Instead, use batchAgent or batchAllAgent with the appropriate transaction types (e.g., {type: 'nominate', ...}).**",
   // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     network: z.string().describe("The name of active network/chain."),
@@ -467,7 +467,7 @@ type UnbondAgentInput = z.infer<typeof _unbondAgentInputSchema>;
 export const unbondAgent = tool({
   name: "unbondAgent",
   description:
-    "Unbond a specific amount of tokens that were previously bonded for staking on a network within the Polkadot ecosystem. IMPORTANT: Staking locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as staking has migrated there. These funds will become available for withdrawal after a network-specific unbonding period.",
+    "Unbond a specific amount of tokens that were previously bonded for staking on a network within the Polkadot ecosystem. **CRITICAL: Do NOT use this for nomination pools. Only for direct staking.** IMPORTANT: Staking locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as staking has migrated there. These funds will become available for withdrawal after a network-specific unbonding period. **CRITICAL WARNING: If the user requests multiple actions with 'batch' or 'batchAll' (e.g., 'nominate X Y Z and unbond 5 pas, batchAll them'), DO NOT use this tool. Instead, use batchAgent or batchAllAgent with the appropriate transaction types (e.g., {type: 'unbond', ...}).**",
   // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     controllerAccount: z

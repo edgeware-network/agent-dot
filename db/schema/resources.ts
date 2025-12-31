@@ -20,7 +20,8 @@ export const resources = pgTable("resources", {
 });
 
 // Schema for resources - used to validate API requests
-// @ts-expect-error - drizzle-zod createSelectSchema overload issue
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment -- drizzle-zod type inference issue with createSelectSchema overloads (ESLint parser doesn't detect this error but tsc does)
+// @ts-ignore
 export const insertResourceSchema = createSelectSchema(resources)
   .extend({})
   .omit({

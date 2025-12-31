@@ -13,8 +13,14 @@ interface MessagesProps {
   messages: UIMessage[];
   status: UseChatHelpers<UIMessage>["status"];
   sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
+  addToolResult: UseChatHelpers<UIMessage>["addToolResult"];
 }
-function PureMessages({ messages, status, sendMessage }: MessagesProps) {
+function PureMessages({
+  messages,
+  status,
+  sendMessage,
+  addToolResult,
+}: MessagesProps) {
   const {
     containerRef: messagesContainerRef,
     endRef: messagesEndRef,
@@ -34,7 +40,7 @@ function PureMessages({ messages, status, sendMessage }: MessagesProps) {
       <div className="mx-auto w-full max-w-3xl px-4 text-pretty wrap-break-word">
         {messages.map((message, index) => (
           <PreviewMessage
-            key={message.id}
+            key={`${message.id}-${String(index)}`}
             message={message}
             isStreaming={status === "streaming"}
             isLast={index === messages.length - 1}
@@ -42,6 +48,7 @@ function PureMessages({ messages, status, sendMessage }: MessagesProps) {
               index === messages.length - 1 && hasSentMessage
             }
             sendMessage={sendMessage}
+            addToolResult={addToolResult}
           />
         ))}
         {status === "submitted" &&

@@ -1,5 +1,7 @@
 import { prompt } from "@/agents/prompt";
 import {
+  batchAgent,
+  batchAllAgent,
   bondAgent,
   bondExtraAgent,
   bondExtraNominationPoolsAgent,
@@ -56,6 +58,8 @@ const tools: ToolSet = {
   bondExtraNominationPoolsAgent: bondExtraNominationPoolsAgent,
   unbondFromNominationPoolsAgent: unbondFromNominationPoolsAgent,
   getTeleportRoutes: getTeleportRoutes,
+  batchAgent: batchAgent,
+  batchAllAgent: batchAllAgent,
 };
 
 export async function POST(req: Request) {
@@ -76,10 +80,66 @@ export async function POST(req: Request) {
       );
     }
 
-    // Use messages directly (already validated by type assertion)
-    const validMessages = messages;
+    // Deduplicate messages by id
+    const seenMessageIds = new Set<string>();
+    const deduplicatedMessages = messages.filter((msg) => {
+      if (seenMessageIds.has(msg.id)) {
+        return false;
+      }
+      seenMessageIds.add(msg.id);
+      return true;
+    });
 
-    if (messages.length === 0) {
+    // Deduplicate tool calls within assistant messages by toolCallId
+    // Also filter out incomplete tool calls (convertToModelMessages doesn't support them)
+    const processedMessages = deduplicatedMessages.map((msg) => {
+      if (msg.role === "assistant") {
+        const seenToolCallIds = new Set<string>();
+        const deduplicatedParts = msg.parts.filter((part) => {
+          // Check if this part has a toolCallId (it's a tool call)
+          if (
+            typeof part === "object" &&
+            "toolCallId" in part &&
+            part.toolCallId
+          ) {
+            const toolCallId =
+              typeof part.toolCallId === "string"
+                ? part.toolCallId
+                : String(part.toolCallId);
+
+            // Deduplicate: if we've seen this toolCallId before, remove it
+            if (seenToolCallIds.has(toolCallId)) {
+              return false;
+            }
+
+            // Check if this is an incomplete tool call
+            // convertToModelMessages requires tool calls to have complete input
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
+            const partAny = part as any;
+            // Filter out tool calls in "call" state that don't have input (incomplete)
+            // Also filter out tool calls in "call" state entirely to be safe
+            // Only keep tool calls that are in "result" or "output-available" state
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (partAny.state === "call") {
+              // Tool call in progress - skip it to avoid incomplete input errors
+              return false;
+            }
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            if (partAny.state === "result" && !partAny.input) {
+              // Result state but no input - incomplete, skip it
+              return false;
+            }
+
+            seenToolCallIds.add(toolCallId);
+          }
+          return true;
+        });
+        return { ...msg, parts: deduplicatedParts };
+      }
+      return msg;
+    });
+
+    if (processedMessages.length === 0) {
       return new Response(
         JSON.stringify({
           error: "Invalid request: no valid messages found",
@@ -100,7 +160,7 @@ export async function POST(req: Request) {
           role: "system",
           content: prompt,
         },
-        ...convertToModelMessages(validMessages),
+        ...convertToModelMessages(processedMessages),
       ],
       stopWhen: stepCountIs(3),
       tools,

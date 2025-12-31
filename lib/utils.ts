@@ -1,5 +1,6 @@
+import { chainConfig } from "@/papi-config";
 import { hexToU8a, isHex } from "@polkadot/util";
-import { decodeAddress } from "@polkadot/util-crypto";
+import { decodeAddress, encodeAddress } from "@polkadot/util-crypto";
 import { clsx, type ClassValue } from "clsx";
 import { customAlphabet } from "nanoid";
 import { twMerge } from "tailwind-merge";
@@ -87,15 +88,89 @@ export function isValidEthereumAddress(address: string) {
 }
 
 export function getSubscanSubdomain(chain: string): string {
-  const relays = ["Polkadot", "Westend", "Paseo", "Kusama"];
-  for (const relay of relays) {
-    if (chain.endsWith(relay)) {
-      if (chain === relay) {
-        return relay.toLowerCase();
+  const normalizedChain = chain.trim();
+
+  // Handle AssetHub chains - format: "assethub-{relay}"
+  if (normalizedChain.includes("AssetHub")) {
+    const relays = ["Polkadot", "Westend", "Paseo", "Kusama"];
+    for (const relay of relays) {
+      if (normalizedChain.includes(relay)) {
+        return `assethub-${relay.toLowerCase()}`;
       }
-      const prefix = chain.substring(0, chain.length - relay.length);
-      return `${prefix.toLowerCase()}-${relay.toLowerCase()}`;
     }
   }
-  return chain.toLowerCase();
+
+  // Handle regular relay chains
+  const relays = ["Polkadot", "Westend", "Paseo", "Kusama"];
+  for (const relay of relays) {
+    if (normalizedChain.endsWith(relay)) {
+      if (normalizedChain === relay) {
+        return relay.toLowerCase();
+      }
+      const prefix = normalizedChain.substring(
+        0,
+        normalizedChain.length - relay.length,
+      );
+      // Replace spaces with hyphens in prefix
+      const cleanPrefix = prefix.trim().replace(/\s+/g, "-").replace(/-+$/, "");
+      return `${cleanPrefix.toLowerCase()}-${relay.toLowerCase()}`;
+    }
+  }
+
+  // Fallback: replace spaces with hyphens
+  return normalizedChain.replace(/\s+/g, "-").toLowerCase();
+}
+
+/**
+ * Converts an SS58 address to the format required by the target chain.
+ * Different chains use different SS58 prefixes:
+ * - Polkadot: prefix 0 (addresses start with "1")
+ * - Paseo: prefix 0 (addresses start with "1")
+ * - Westend: prefix 42 (addresses start with "5")
+ * - AssetHub chains: same as their relay chain
+ */
+export function convertAddressToChainFormat(
+  address: string,
+  targetChainName: string,
+): string {
+  try {
+    // Decode the address to get the raw bytes
+    const decoded = decodeAddress(address);
+
+    // Find the target chain config
+    const targetChain = chainConfig.find(
+      (chain) => chain.name.toLowerCase() === targetChainName.toLowerCase(),
+    );
+
+    if (!targetChain) {
+      // If chain not found, return original address
+      return address;
+    }
+
+    // Get SS58 prefix from chain spec
+    // Polkadot and Paseo use prefix 0, Westend uses prefix 42
+    let ss58Prefix: number;
+    if (
+      targetChain.name === "Polkadot" ||
+      targetChain.name === "Polkadot AssetHub" ||
+      targetChain.name === "Paseo" ||
+      targetChain.name === "Paseo AssetHub"
+    ) {
+      ss58Prefix = 0;
+    } else if (
+      targetChain.name === "Westend" ||
+      targetChain.name === "Westend AssetHub"
+    ) {
+      ss58Prefix = 42;
+    } else {
+      // Default to Polkadot prefix if unknown
+      ss58Prefix = 0;
+    }
+
+    // Encode with the target chain's prefix
+    return encodeAddress(decoded, ss58Prefix);
+  } catch {
+    // If conversion fails, return original address
+    return address;
+  }
 }

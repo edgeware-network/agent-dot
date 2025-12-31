@@ -17,7 +17,7 @@ type TransferAgentInput = z.infer<typeof _transferAgentInputSchema>;
 export const transferAgent = tool({
   name: "transferAgent",
   description:
-    "Prepare and confirm a transfer of tokens on the Polkadot network.",
+    "Prepare and confirm a SINGLE transfer of tokens on the Polkadot network. **CRITICAL: This tool is ONLY for ONE transfer. If the user requests MULTIPLE transfers (e.g., 'transfer 10 PAS to Address1 and transfer 20 PAS to Address2') or multiple actions in one message (e.g., 'transfer X and bond Y'), DO NOT use this tool. Use batchAgent or batchAllAgent instead. NEVER call this tool multiple times for multiple transfers - always use batchAgent or batchAllAgent with multiple transfer transactions.**",
   // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     to: z.string().describe("A SS58-encoded wallet address to transfer to."),

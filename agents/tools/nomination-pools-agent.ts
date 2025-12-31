@@ -40,7 +40,7 @@ type JoinNominationPoolsInput = z.infer<typeof _joinNominationPoolsInputSchema>;
 
 export const joinNominationPoolsAgent = tool({
   description:
-    "Join an existing nomination pool on a network within the Polkadot ecosystem. IMPORTANT: Nomination pools locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as nomination pools have migrated there. You will receive staking rewards proportionally from the pool. Note: You can only be a member of one pool at a time. A network-specific minimum bond amount is required to join a pool, and you need to ensure your account maintains its existential deposit plus transaction fees.",
+    "Join an existing nomination pool on a network within the Polkadot ecosystem. IMPORTANT: Nomination pools locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as nomination pools have migrated there. You will receive staking rewards proportionally from the pool. Note: You can only be a member of one pool at a time. A network-specific minimum bond amount is required to join a pool, and you need to ensure your account maintains its existential deposit plus transaction fees. **CRITICAL WARNING: If the user requests multiple actions with 'batch' or 'batchAll' (e.g., 'join pool and transfer X, batch them'), DO NOT use this tool. Instead, use batchAgent or batchAllAgent with the appropriate transaction types (e.g., {type: 'joinPool', ...}).**",
   // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     network: z.string().describe("The name of the active network/chain."),
@@ -188,7 +188,7 @@ type BondExtraNominationPoolsInput = z.infer<
 
 export const bondExtraNominationPoolsAgent = tool({
   description:
-    "Add more tokens to your existing bonded stake in a nomination pool on a network within the Polkadot ecosystem. IMPORTANT: Nomination pools locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as nomination pools have migrated there. You can either bond additional tokens from your account's free balance or re-stake your accumulated (unclaimed) rewards.",
+    "Add more tokens to your existing bonded stake in a nomination pool on a network within the Polkadot ecosystem. IMPORTANT: Nomination pools locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as nomination pools have migrated there. You can either bond additional tokens from your account's free balance or re-stake your accumulated (unclaimed) rewards. **CRITICAL WARNING: If the user requests multiple actions with 'batch' or 'batchAll' (e.g., 'bond extra to pool and unbond from pool, batchAll them'), DO NOT use this tool. Instead, use batchAgent or batchAllAgent with the appropriate transaction types (e.g., {type: 'bondExtraPool', ...}).**",
   // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     network: z.string().describe("The name of the active network/chain."),
@@ -300,7 +300,7 @@ type UnbondFromNominationPoolsInput = z.infer<
 
 export const unbondFromNominationPoolsAgent = tool({
   description:
-    "Initiate the unbonding process for a specified amount of tokens (referred to as 'unbonding points') from a nomination pool you are currently a member of, on a network within the Polkadot ecosystem. IMPORTANT: Nomination pools locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as nomination pools have migrated there. The unbonded funds will become available for withdrawal after a network-specific unbonding period.",
+    "Initiate the unbonding process for a specified amount of tokens (referred to as 'unbonding points') from a nomination pool you are currently a member of, on a network within the Polkadot ecosystem. IMPORTANT: Nomination pools locations - All networks (Polkadot, Kusama, Westend, Paseo): Use their respective AssetHub chains (Polkadot AssetHub, Kusama AssetHub, Westend AssetHub, Paseo AssetHub) as nomination pools have migrated there. The unbonded funds will become available for withdrawal after a network-specific unbonding period. **CRITICAL WARNING: If the user requests multiple actions with 'batch' or 'batchAll' (e.g., 'unbond from pool and bond extra to pool, batchAll them'), DO NOT use this tool. Instead, use batchAgent or batchAllAgent with the appropriate transaction types (e.g., {type: 'unbondPool', ...}).**",
   // @ts-ignore - tool function overload issue with inline schemas (TypeScript shows error but ESLint parser doesn't)
   inputSchema: z.object({
     network: z.string().describe("The name of the active network/chain."),
