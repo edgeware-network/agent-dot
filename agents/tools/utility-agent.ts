@@ -129,16 +129,12 @@ export const batchAgent = tool({
   // @ts-ignore - tool function overload issue with inline schemas
   // eslint-disable-next-line @typescript-eslint/require-await
   execute: async (input) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const { transactions } = input;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       const transactionCount = transactions.length;
       return {
         tx: {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           transactionCount,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           transactions,
         },
         message: `Batch transaction prepared with ${String(transactionCount)} transaction(s). Sign and submit to execute all transactions. Note: If one transaction fails, others will still execute.`,
@@ -183,16 +179,12 @@ export const batchAllAgent = tool({
   // @ts-ignore - tool function overload issue with inline schemas
   // eslint-disable-next-line @typescript-eslint/require-await
   execute: async (input) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const { transactions } = input;
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       const transactionCount = transactions.length;
       return {
         tx: {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           transactionCount,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           transactions,
         },
         message: `BatchAll transaction prepared with ${String(transactionCount)} transaction(s). Sign and submit to execute all transactions atomically. Note: If any transaction fails, all will be rolled back.`,

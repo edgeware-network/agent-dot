@@ -3,6 +3,7 @@
 import ChatHeader from "@/app/(chat)/chat-header";
 import { Messages } from "@/app/(chat)/messages";
 import { PromptInputForm } from "@/app/(chat)/prompt-input-form";
+import { TransactionQueue } from "@/components/transaction-queue";
 import { useRefObject } from "@/hooks/use-ref-object";
 import { onChatToolCall } from "@/lib/ai";
 import { useChat, type UIMessage, type UseChatHelpers } from "@ai-sdk/react";
@@ -102,6 +103,9 @@ export default function Chat() {
           sendMessage={preSendMessage}
           addToolResult={addToolResult}
         />
+        <div className="border-t-border border-t px-4 py-2">
+          <TransactionQueue sendMessage={preSendMessage} />
+        </div>
         <PromptInputForm
           sendMessage={preSendMessage}
           status={status}

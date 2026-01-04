@@ -18,7 +18,7 @@ import type { UIMessage, UseChatHelpers } from "@ai-sdk/react";
 import { Builder, convertSs58 } from "@paraspell/sdk";
 import { MultiAddress } from "@polkadot-api/descriptors";
 import { useChainId, useClient, useTypedApi } from "@reactive-dot/react";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { toast } from "sonner";
 
 function bigIntToString(obj: any): any {
@@ -108,6 +108,23 @@ export function useUtility() {
   const activeChain =
     chainConfig.find((chain) => chain.key === chainId) ?? chainConfig[0];
   const { selectedAccount } = useWallet();
+
+  // Helper function to generate unique toast IDs
+  const generateToastId = () => {
+    return `tx-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  };
+
+  // Refs to prevent multiple concurrent batch calls
+  const batchInProgress = useRef(false);
+  const batchAllInProgress = useRef(false);
+
+  // Refs to track active transaction hashes to prevent duplicate subscriptions
+  const activeBatchTxHash = useRef<string | null>(null);
+  const activeBatchAllTxHash = useRef<string | null>(null);
+
+  // Refs to track sent messages by unique ID to prevent duplicates
+  const sentBatchMessages = useRef<Set<string>>(new Set());
+  const sentBatchAllMessages = useRef<Set<string>>(new Set());
 
   // Helper to get token symbol from chain key
   const getTokenSymbol = useCallback((): "DOT" | "WND" | "PAS" => {
@@ -333,26 +350,52 @@ export function useUtility() {
       transactions: BatchTransaction[];
       sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
     }): Promise<string | null> => {
-      if (!api || !selectedAccount) {
-        toast.error("Wallet not connected");
-        void sendMessage({
-          role: "assistant",
-          parts: [
-            {
-              type: "text",
-              text: "Please connect your wallet first",
-            },
-          ],
-        });
+      // Prevent multiple concurrent batch calls
+      if (batchInProgress.current || activeBatchTxHash.current !== null) {
+        // eslint-disable-next-line no-console
+        console.log("sendBatch: Already in progress, skipping duplicate call");
         return null;
       }
+      batchInProgress.current = true;
 
-      const toastId = toast.loading("Processing Batch transaction...");
+      // Clear sent messages for this new batch
+      sentBatchMessages.current.clear();
 
       try {
+        if (!api || !selectedAccount) {
+          toast.error("Wallet not connected");
+          void sendMessage({
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: "Please connect your wallet first",
+              },
+            ],
+          });
+          return null;
+        }
+
+        const toastId = generateToastId();
+        toast.loading("Processing Batch transaction...", { id: toastId });
+
         // Build all transaction calls
-        const callPromises = transactions.map((tx) => buildTransactionCall(tx));
-        const rawCalls = await Promise.all(callPromises);
+        let rawCalls: any[];
+        try {
+          const callPromises = transactions.map((tx) =>
+            buildTransactionCall(tx),
+          );
+          rawCalls = await Promise.all(callPromises);
+        } catch (error) {
+          // Dismiss loading toast on build error
+          toast.dismiss(toastId);
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          // eslint-disable-next-line no-console
+          console.error("Error building transactions:", error);
+          toast.error(`Failed to build transactions: ${errorMessage}`);
+          throw new Error(`Failed to build transactions: ${errorMessage}`);
+        }
 
         // Filter out null calls
         const validCalls = rawCalls.filter((call) => call !== null);
@@ -370,55 +413,232 @@ export function useUtility() {
           calls: rawCallsForBatch,
         });
 
-        // Sign and submit
-        const tx = await batchTx.signAndSubmit(selectedAccount.polkadotSigner);
+        // Sign, submit, and watch transaction status
+        return await new Promise<string | null>((resolve, reject) => {
+          let txHash: string | null = null;
+          let subscriptionObj: { unsubscribe: () => void } | null = null;
+          let isResolved = false;
 
-        if (!tx.ok) {
-          throw new Error(
-            `${String(tx.dispatchError.type)}: ${JSON.stringify(tx.dispatchError.value, null, 2)}`,
-          );
-        }
+          try {
+            const subscription = batchTx.signSubmitAndWatch(
+              selectedAccount.polkadotSigner,
+            );
 
-        const txHash = String(tx.txHash);
-        toast.success(
-          `Batch transaction sent: https://${getSubscanSubdomain(
-            activeChain.name,
-          )}.subscan.io/extrinsic/${txHash}`,
-          {
-            id: toastId,
-          },
-        );
+            subscriptionObj = subscription.subscribe({
+              next: (status: any) => {
+                // Early return if already resolved to prevent duplicate processing
+                if (isResolved) {
+                  return;
+                }
 
-        void sendMessage({
-          role: "assistant",
-          parts: [
-            {
-              type: "text",
-              text: `Batch transaction successful: https://${getSubscanSubdomain(
-                activeChain.name,
-              )}.subscan.io/extrinsic/${txHash}`,
-            },
-          ],
+                // Set txHash as soon as we get it and track it
+                if (status.txHash && !txHash) {
+                  txHash = String(status.txHash);
+                  activeBatchTxHash.current = txHash;
+                }
+
+                // Handle different status types based on polkadot-api structure
+                if (status.type === "signed") {
+                  txHash = txHash ?? String(status.txHash);
+                  activeBatchTxHash.current = txHash;
+                  const id = `signed-${txHash}`;
+
+                  // Atomic check-and-add to prevent race conditions
+                  if (sentBatchMessages.current.has(id)) {
+                    return;
+                  }
+                  sentBatchMessages.current.add(id);
+
+                  toast.loading(`Batch transaction signed: ${txHash}...`, {
+                    id: toastId,
+                  });
+                  // Only show toast, no chat message for signed status
+                } else if (status.type === "broadcasted") {
+                  txHash ??= String(status.txHash);
+                  activeBatchTxHash.current = txHash;
+                  const id = `broadcasted-${txHash}`;
+
+                  // Atomic check-and-add to prevent race conditions
+                  if (sentBatchMessages.current.has(id)) {
+                    return;
+                  }
+                  sentBatchMessages.current.add(id);
+
+                  toast.loading(`Batch transaction broadcasted: ${txHash}...`, {
+                    id: toastId,
+                  });
+                  // Only show toast, no chat message for broadcasted status
+                } else if (status.type === "txBestBlocksState") {
+                  txHash ??= String(status.txHash);
+                  activeBatchTxHash.current = txHash;
+
+                  if (status.found) {
+                    const blockNumber = status.block.number;
+                    const id = `inblock-${txHash}-${blockNumber}`;
+
+                    if (sentBatchMessages.current.has(id)) {
+                      // Already sent, just update toast
+                      toast.loading(
+                        `Batch transaction included in block #${String(blockNumber)}: ${String(status.block.hash)}...`,
+                        { id: toastId },
+                      );
+                      return;
+                    }
+                    sentBatchMessages.current.add(id);
+
+                    toast.loading(
+                      `Batch transaction included in block #${String(blockNumber)}: ${String(status.block.hash)}...`,
+                      { id: toastId },
+                    );
+                    // Only show toast, no chat message for in-block status
+                  } else {
+                    // Transaction not found yet, but checking validity
+                    toast.loading(
+                      `Batch transaction pending... (valid: ${status.isValid ? "yes" : "no"})`,
+                      { id: toastId },
+                    );
+                  }
+                } else if (status.type === "finalized") {
+                  const finalTxHash = txHash ?? String(status.txHash);
+                  activeBatchTxHash.current = finalTxHash;
+                  const blockNumber = status.block.number;
+                  const id = `finalized-${finalTxHash}`;
+
+                  if (sentBatchMessages.current.has(id)) {
+                    // Already processed
+                    return;
+                  }
+                  sentBatchMessages.current.add(id);
+
+                  if (!status.ok) {
+                    // Transaction finalized but failed
+                    if (isResolved) {
+                      return;
+                    }
+                    isResolved = true;
+
+                    const errorMessage = status.dispatchError
+                      ? JSON.stringify(status.dispatchError)
+                      : "Transaction failed";
+                    toast.error(`Batch transaction failed: ${errorMessage}`, {
+                      id: toastId,
+                    });
+                    void sendMessage({
+                      role: "assistant",
+                      parts: [
+                        {
+                          type: "text",
+                          text: `Batch transaction finalized in block #${String(blockNumber)} but failed: ${errorMessage}. Hash: ${finalTxHash}`,
+                        },
+                      ],
+                    });
+                    if (subscriptionObj) {
+                      subscriptionObj.unsubscribe();
+                    }
+                    activeBatchTxHash.current = null;
+                    reject(new Error(errorMessage));
+                    return;
+                  }
+
+                  // Transaction finalized successfully
+                  if (isResolved) {
+                    return;
+                  }
+                  isResolved = true;
+
+                  toast.success(
+                    `Batch transaction finalized: https://${getSubscanSubdomain(
+                      activeChain.name,
+                    )}.subscan.io/extrinsic/${finalTxHash}`,
+                    { id: toastId },
+                  );
+                  void sendMessage({
+                    role: "assistant",
+                    parts: [
+                      {
+                        type: "text",
+                        text: `Batch transaction finalized in block #${String(blockNumber)} (${String(status.block.hash)}): https://${getSubscanSubdomain(
+                          activeChain.name,
+                        )}.subscan.io/extrinsic/${finalTxHash}`,
+                      },
+                    ],
+                  });
+                  if (subscriptionObj) {
+                    subscriptionObj.unsubscribe();
+                  }
+                  activeBatchTxHash.current = null;
+                  resolve(finalTxHash);
+                }
+              },
+              error: (error: unknown) => {
+                if (isResolved) {
+                  return;
+                }
+                isResolved = true;
+
+                const finalTxHash = txHash ?? "unknown";
+                const id = `error-${finalTxHash}`;
+                if (sentBatchMessages.current.has(id)) {
+                  if (subscriptionObj) {
+                    subscriptionObj.unsubscribe();
+                  }
+                  activeBatchTxHash.current = null;
+                  reject(
+                    error instanceof Error ? error : new Error(String(error)),
+                  );
+                  return;
+                }
+                sentBatchMessages.current.add(id);
+
+                const errorMessage =
+                  error instanceof Error ? error.message : "Unknown error";
+                toast.error(
+                  `Failed to send batch transaction: ${errorMessage}`,
+                  {
+                    id: toastId,
+                  },
+                );
+                void sendMessage({
+                  role: "assistant",
+                  parts: [
+                    {
+                      type: "text",
+                      text: `Batch transaction failed: ${errorMessage}`,
+                    },
+                  ],
+                });
+                if (subscriptionObj) {
+                  subscriptionObj.unsubscribe();
+                }
+                activeBatchTxHash.current = null;
+                reject(
+                  error instanceof Error ? error : new Error(String(error)),
+                );
+              },
+            });
+          } catch (error) {
+            activeBatchTxHash.current = null;
+            const errorMessage =
+              error instanceof Error ? error.message : "Unknown error";
+            toast.error(`Failed to send batch transaction: ${errorMessage}`, {
+              id: toastId,
+            });
+            void sendMessage({
+              role: "assistant",
+              parts: [
+                {
+                  type: "text",
+                  text: `Batch transaction failed: ${errorMessage}`,
+                },
+              ],
+            });
+            reject(error instanceof Error ? error : new Error(String(error)));
+          }
         });
-
-        return txHash;
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error";
-        toast.error(`Failed to send batch transaction: ${errorMessage}`, {
-          id: toastId,
-        });
-
-        void sendMessage({
-          role: "assistant",
-          parts: [
-            {
-              type: "text",
-              text: `Batch transaction failed: ${errorMessage}`,
-            },
-          ],
-        });
-        throw error;
+      } finally {
+        batchInProgress.current = false;
+        // Don't clear sentBatchMessages here - let it persist to prevent duplicates
+        // It will be cleared at the start of the next batch
       }
     },
     [api, selectedAccount, activeChain, buildTransactionCall],
@@ -432,48 +652,76 @@ export function useUtility() {
       transactions: BatchTransaction[];
       sendMessage: UseChatHelpers<UIMessage>["sendMessage"];
     }): Promise<string | null> => {
-      if (!api || !selectedAccount) {
-        toast.error("Wallet not connected");
-        void sendMessage({
-          role: "assistant",
-          parts: [
-            {
-              type: "text",
-              text: "Please connect your wallet first",
-            },
-          ],
-        });
+      // Prevent multiple concurrent batchAll calls
+      if (batchAllInProgress.current || activeBatchAllTxHash.current !== null) {
+        // eslint-disable-next-line no-console
+        console.log(
+          "sendBatchAll: Already in progress, skipping duplicate call",
+        );
         return null;
       }
+      batchAllInProgress.current = true;
 
-      const toastId = toast.loading("Processing BatchAll transaction...");
+      // Clear sent messages for this new batchAll
+      sentBatchAllMessages.current.clear();
 
       try {
+        if (!api || !selectedAccount) {
+          toast.error("Wallet not connected");
+          void sendMessage({
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: "Please connect your wallet first",
+              },
+            ],
+          });
+          return null;
+        }
+
+        const toastId = generateToastId();
+        toast.loading("Processing BatchAll transaction...", { id: toastId });
         // Verify Utility pallet exists
         if (!api.tx.Utility) {
+          toast.dismiss(toastId);
           throw new Error("Utility pallet not available on this chain");
         }
 
         if (!api.tx.Utility.batch_all) {
+          toast.dismiss(toastId);
           throw new Error("batch_all method not available on Utility pallet");
         }
 
         // Build all transaction calls
-        const callPromises = transactions.map((tx, index) => {
-          // eslint-disable-next-line no-console
-          console.log(
-            `Building transaction ${String(index + 1)}/${String(transactions.length)}:`,
-            tx,
-          );
-          return buildTransactionCall(tx);
-        });
+        let rawCalls: any[];
+        try {
+          const callPromises = transactions.map((tx, index) => {
+            // eslint-disable-next-line no-console
+            console.log(
+              `Building transaction ${String(index + 1)}/${String(transactions.length)}:`,
+              tx,
+            );
+            return buildTransactionCall(tx);
+          });
 
-        const rawCalls = await Promise.all(callPromises);
+          rawCalls = await Promise.all(callPromises);
+        } catch (error) {
+          // Dismiss loading toast on build error
+          toast.dismiss(toastId);
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          // eslint-disable-next-line no-console
+          console.error("Error building transactions:", error);
+          toast.error(`Failed to build transactions: ${errorMessage}`);
+          throw new Error(`Failed to build transactions: ${errorMessage}`);
+        }
 
         // Filter out null calls
         const validCalls = rawCalls.filter((call) => call !== null);
 
         if (validCalls.length === 0) {
+          toast.dismiss(toastId);
           throw new Error("No valid transactions to batch");
         }
 
@@ -519,12 +767,247 @@ export function useUtility() {
           calls: rawCallsForBatch,
         });
 
-        // Sign and submit
+        // Helper function to create subscription with status handling
+        const createSubscription = (
+          tx: any,
+          isFallback = false,
+        ): Promise<string> => {
+          return new Promise<string>((resolve, reject) => {
+            let txHash: string | null = null;
+            let subscriptionObj: { unsubscribe: () => void } | null = null;
+            let isResolved = false;
+
+            try {
+              const subscription = tx.signSubmitAndWatch(
+                selectedAccount.polkadotSigner,
+              );
+
+              subscriptionObj = subscription.subscribe({
+                next: (status: any) => {
+                  // Early return if already resolved to prevent duplicate processing
+                  if (isResolved) {
+                    return;
+                  }
+
+                  // Set txHash as soon as we get it and track it
+                  if (status.txHash && !txHash) {
+                    txHash = String(status.txHash);
+                    activeBatchAllTxHash.current = txHash;
+                  }
+
+                  // Handle different status types based on polkadot-api structure
+                  const txType = isFallback ? "Batch" : "BatchAll";
+
+                  if (status.type === "signed") {
+                    txHash = txHash ?? String(status.txHash);
+                    activeBatchAllTxHash.current = txHash;
+                    const id = `signed-${txHash}`;
+
+                    // Atomic check-and-add to prevent race conditions
+                    if (sentBatchAllMessages.current.has(id)) {
+                      return;
+                    }
+                    sentBatchAllMessages.current.add(id);
+
+                    toast.loading(
+                      `${txType} transaction signed: ${txHash}...`,
+                      {
+                        id: toastId,
+                      },
+                    );
+                    // Only show toast, no chat message for signed status
+                  } else if (status.type === "broadcasted") {
+                    txHash ??= String(status.txHash);
+                    activeBatchAllTxHash.current = txHash;
+                    const id = `broadcasted-${txHash}`;
+
+                    // Atomic check-and-add to prevent race conditions
+                    if (sentBatchAllMessages.current.has(id)) {
+                      return;
+                    }
+                    sentBatchAllMessages.current.add(id);
+
+                    toast.loading(
+                      `${txType} transaction broadcasted: ${txHash}...`,
+                      { id: toastId },
+                    );
+                    // Only show toast, no chat message for broadcasted status
+                  } else if (status.type === "txBestBlocksState") {
+                    txHash ??= String(status.txHash);
+                    activeBatchAllTxHash.current = txHash;
+
+                    if (status.found) {
+                      const blockNumber = status.block.number;
+                      const id = `inblock-${txHash}-${blockNumber}`;
+
+                      if (sentBatchAllMessages.current.has(id)) {
+                        // Already sent, just update toast
+                        toast.loading(
+                          `${txType} transaction included in block #${String(blockNumber)}: ${String(status.block.hash)}...`,
+                          { id: toastId },
+                        );
+                        return;
+                      }
+                      sentBatchAllMessages.current.add(id);
+
+                      toast.loading(
+                        `${txType} transaction included in block #${String(blockNumber)}: ${String(status.block.hash)}...`,
+                        { id: toastId },
+                      );
+                      // Only show toast, no chat message for in-block status
+                    } else {
+                      // Transaction not found yet, but checking validity
+                      toast.loading(
+                        `${txType} transaction pending... (valid: ${status.isValid ? "yes" : "no"})`,
+                        { id: toastId },
+                      );
+                    }
+                  } else if (status.type === "finalized") {
+                    const finalTxHash = txHash ?? String(status.txHash);
+                    activeBatchAllTxHash.current = finalTxHash;
+                    const blockNumber = status.block.number;
+                    const id = `finalized-${finalTxHash}`;
+
+                    if (sentBatchAllMessages.current.has(id)) {
+                      // Already processed
+                      return;
+                    }
+                    sentBatchAllMessages.current.add(id);
+
+                    if (!status.ok) {
+                      // Transaction finalized but failed
+                      if (isResolved) {
+                        return;
+                      }
+                      isResolved = true;
+
+                      const errorMessage = status.dispatchError
+                        ? JSON.stringify(status.dispatchError)
+                        : "Transaction failed";
+                      toast.error(
+                        `${txType} transaction failed: ${errorMessage}`,
+                        { id: toastId },
+                      );
+                      void sendMessage({
+                        role: "assistant",
+                        parts: [
+                          {
+                            type: "text",
+                            text: `${txType} transaction finalized in block #${String(blockNumber)} but failed: ${errorMessage}. Hash: ${finalTxHash}`,
+                          },
+                        ],
+                      });
+                      if (subscriptionObj) {
+                        subscriptionObj.unsubscribe();
+                      }
+                      activeBatchAllTxHash.current = null;
+                      reject(new Error(errorMessage));
+                      return;
+                    }
+
+                    // Transaction finalized successfully
+                    if (isResolved) {
+                      return;
+                    }
+                    isResolved = true;
+
+                    toast.success(
+                      `${txType} transaction finalized: https://${getSubscanSubdomain(
+                        activeChain.name,
+                      )}.subscan.io/extrinsic/${finalTxHash}`,
+                      { id: toastId },
+                    );
+                    void sendMessage({
+                      role: "assistant",
+                      parts: [
+                        {
+                          type: "text",
+                          text: `${txType} transaction finalized in block #${String(blockNumber)} (${String(status.block.hash)}): https://${getSubscanSubdomain(
+                            activeChain.name,
+                          )}.subscan.io/extrinsic/${finalTxHash}`,
+                        },
+                      ],
+                    });
+                    if (subscriptionObj) {
+                      subscriptionObj.unsubscribe();
+                    }
+                    activeBatchAllTxHash.current = null;
+                    resolve(finalTxHash);
+                  }
+                },
+                error: (error: unknown) => {
+                  if (isResolved) {
+                    return;
+                  }
+                  isResolved = true;
+
+                  const finalTxHash = txHash ?? "unknown";
+                  const id = `error-${finalTxHash}`;
+                  if (sentBatchAllMessages.current.has(id)) {
+                    if (subscriptionObj) {
+                      subscriptionObj.unsubscribe();
+                    }
+                    activeBatchAllTxHash.current = null;
+                    reject(
+                      error instanceof Error ? error : new Error(String(error)),
+                    );
+                    return;
+                  }
+                  sentBatchAllMessages.current.add(id);
+
+                  const errorMessage =
+                    error instanceof Error ? error.message : "Unknown error";
+                  const txType = isFallback ? "Batch" : "BatchAll";
+                  toast.error(
+                    `Failed to send ${txType} transaction: ${errorMessage}`,
+                    { id: toastId },
+                  );
+                  void sendMessage({
+                    role: "assistant",
+                    parts: [
+                      {
+                        type: "text",
+                        text: `${txType} transaction failed: ${errorMessage}`,
+                      },
+                    ],
+                  });
+                  if (subscriptionObj) {
+                    subscriptionObj.unsubscribe();
+                  }
+                  activeBatchAllTxHash.current = null;
+                  reject(
+                    error instanceof Error ? error : new Error(String(error)),
+                  );
+                },
+              });
+            } catch (error) {
+              activeBatchAllTxHash.current = null;
+              const errorMessage =
+                error instanceof Error ? error.message : "Unknown error";
+              const txType = isFallback ? "Batch" : "BatchAll";
+              toast.error(
+                `Failed to send ${txType} transaction: ${errorMessage}`,
+                { id: toastId },
+              );
+              void sendMessage({
+                role: "assistant",
+                parts: [
+                  {
+                    type: "text",
+                    text: `${txType} transaction failed: ${errorMessage}`,
+                  },
+                ],
+              });
+              reject(error instanceof Error ? error : new Error(String(error)));
+            }
+          });
+        };
+
+        // Sign, submit, and watch transaction status
         // Note: There's a known encoding issue with batch_all in polkadot-api
         // If encoding fails, we'll fall back to batch (not atomic, but will work)
-        let tx;
         try {
-          tx = await batchAllTx.signAndSubmit(selectedAccount.polkadotSigner);
+          return await createSubscription(batchAllTx, false);
         } catch (submitError) {
           const errorMessage =
             submitError instanceof Error
@@ -535,7 +1018,8 @@ export function useUtility() {
           if (
             errorMessage.includes("inner[tag] is not a function") ||
             errorMessage.includes("tag") ||
-            errorMessage.includes("encoding")
+            errorMessage.includes("encoding") ||
+            errorMessage.includes("signSubmitAndWatch")
           ) {
             // eslint-disable-next-line no-console
             console.warn(
@@ -544,22 +1028,21 @@ export function useUtility() {
 
             // Fallback to batch (not atomic, but will work)
             // Normalize calls: extract decodedCall if it exists, otherwise use call as-is
-            const rawCallsForBatch = validCalls.map(
+            const rawCallsForBatchFallback = validCalls.map(
               (call) => call.decodedCall ?? call,
             );
             // eslint-disable-next-line no-console
             console.log(
               "rawCallsForBatch before batch (fallback):",
-              JSON.stringify(rawCallsForBatch, null, 2),
+              JSON.stringify(rawCallsForBatchFallback, null, 2),
             );
             const batchTx = (api.tx.Utility.batch as any)({
-              calls: rawCallsForBatch,
+              calls: rawCallsForBatchFallback,
             });
-            tx = await batchTx.signAndSubmit(selectedAccount.polkadotSigner);
 
             // Show warning toast
             toast.warning(
-              "batch_all encoding failed. Used batch instead (not atomic - partial failures allowed).",
+              "batch_all encoding failed. Using batch instead (not atomic - partial failures allowed).",
               { duration: 8000, id: toastId },
             );
 
@@ -568,14 +1051,17 @@ export function useUtility() {
               parts: [
                 {
                   type: "text",
-                  text: `BatchAll transaction failed (fallback to Batch): ${errorMessage}`,
+                  text: "BatchAll encoding failed. Falling back to Batch (not atomic - partial failures allowed).",
                 },
               ],
             });
+
+            // Use batch with signSubmitAndWatch
+            return await createSubscription(batchTx, true);
           } else {
             // Different error - rethrow
             // eslint-disable-next-line no-console
-            console.error("Error during signAndSubmit:", submitError);
+            console.error("Error during signSubmitAndWatch:", submitError);
             // eslint-disable-next-line no-console
             console.error("batchAllTx:", batchAllTx);
             // eslint-disable-next-line no-console
@@ -585,40 +1071,6 @@ export function useUtility() {
             );
           }
         }
-
-        if (!tx.ok) {
-          const errorType = tx.dispatchError?.type
-            ? String(tx.dispatchError.type)
-            : "Unknown";
-          const errorValue = tx.dispatchError?.value
-            ? JSON.stringify(tx.dispatchError.value, null, 2)
-            : "No error details";
-          throw new Error(`${errorType}: ${errorValue}`);
-        }
-
-        const txHash = String(tx.txHash);
-        toast.success(
-          `BatchAll transaction sent: https://${getSubscanSubdomain(
-            activeChain.name,
-          )}.subscan.io/extrinsic/${txHash}`,
-          {
-            id: toastId,
-          },
-        );
-
-        void sendMessage({
-          role: "assistant",
-          parts: [
-            {
-              type: "text",
-              text: `BatchAll transaction successful: https://${getSubscanSubdomain(
-                activeChain.name,
-              )}.subscan.io/extrinsic/${txHash}`,
-            },
-          ],
-        });
-
-        return txHash;
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error("Error in sendBatchAll:", error);
@@ -627,22 +1079,13 @@ export function useUtility() {
           "Error stack:",
           error instanceof Error ? error.stack : "No stack",
         );
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error";
-        toast.error(`Failed to send batchAll transaction: ${errorMessage}`, {
-          id: toastId,
-        });
-
-        void sendMessage({
-          role: "assistant",
-          parts: [
-            {
-              type: "text",
-              text: `BatchAll transaction failed: ${errorMessage}`,
-            },
-          ],
-        });
+        // Error handling is done inside createSubscription, so we just rethrow here
+        // The subscription's error handler will send the message
         throw error;
+      } finally {
+        batchAllInProgress.current = false;
+        // Don't clear sentBatchAllMessages here - let it persist to prevent duplicates
+        // It will be cleared at the start of the next batchAll
       }
     },
     [api, selectedAccount, activeChain, buildTransactionCall],
