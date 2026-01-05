@@ -5,7 +5,7 @@
  * Usage: node scripts/run-with-pm.js <command>
  */
 
-const { execSync } = require("child_process");
+const { execSync, execFileSync } = require("child_process");
 
 function detectPackageManager() {
   try {
@@ -22,15 +22,18 @@ function detectPackageManager() {
 }
 
 const pm = detectPackageManager();
-const command = process.argv.slice(2).join(" ");
+const argv = process.argv.slice(2);
 
-if (!command) {
+if (argv.length === 0) {
   console.error("Error: No command provided");
   process.exit(1);
 }
 
+const subcommand = argv[0];
+const args = argv.slice(1);
+
 try {
-  execSync(`${pm} ${command}`, { stdio: "inherit" });
+  execFileSync(pm, [subcommand, ...args], { stdio: "inherit" });
 } catch (error) {
   process.exit(error.status || 1);
 }
