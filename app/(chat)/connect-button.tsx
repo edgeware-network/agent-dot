@@ -67,6 +67,15 @@ export default function ConnectButton() {
       content: ({ previous }) => <ViewSelectAccount previous={previous} />,
     },
   ];
+
+  // Handle click to blur the button before opening dialog
+  const handleTriggerClick = (e: React.MouseEvent) => {
+    // Blur the button to remove focus before dialog opens
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.blur();
+    }
+  };
+
   return (
     <Button
       size="lg"
@@ -81,6 +90,11 @@ export default function ConnectButton() {
               "flex min-w-0 flex-1 items-center gap-2",
               !selectedAccount?.address && "justify-center",
             )}
+            onPointerDown={(e) => {
+              // Prevent focus on pointer down, let the dialog handle focus
+              e.preventDefault();
+            }}
+            onClick={handleTriggerClick}
           >
             {selectedAccount?.name && displayAddress && (
               <Wallet

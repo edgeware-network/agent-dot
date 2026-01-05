@@ -226,6 +226,7 @@ export function useUtility() {
             unbonding_points: amountInPlancks,
           });
         } else if (tx.type === "xcm") {
+          let builder: any = null;
           try {
             const { src, dst, amount, symbol, recipient } = tx;
 
@@ -285,17 +286,31 @@ export function useUtility() {
             );
 
             // Build XCM transaction using Paraspell
-            const builder = Builder()
+            builder = Builder()
               .from(srcNodeName)
               .to(dstNodeName)
               .currency({ symbol: tx.symbol, amount: amountInPlancks })
               .address(convertSs58(finalRecipient, dstNodeName))
               .senderAddress(selectedAccount.address);
 
-            const txObj = await builder.build();
-
-            // Disconnect builder before returning or throwing
-            await builder.disconnect();
+            let txObj;
+            try {
+              txObj = await builder.build();
+            } catch (buildError: unknown) {
+              const err = buildError as Error;
+              // Check if it's a chain configuration error
+              if (
+                err.message.includes("relaychainSymbol") ||
+                err.message.includes("Cannot read properties of undefined")
+              ) {
+                throw new Error(
+                  `Chain configuration error: The Paraspell SDK may not have complete configuration for "${srcNodeName}" or "${dstNodeName}". ` +
+                    `Please verify these chains are supported: ${src} -> ${dst}. ` +
+                    `Original error: ${err.message}`,
+                );
+              }
+              throw err;
+            }
 
             const sanitizedTxObj = bigIntToString(txObj);
 
@@ -328,6 +343,17 @@ export function useUtility() {
             // eslint-disable-next-line no-console
             console.error("Error building XCM transaction:", error);
             throw error;
+          } finally {
+            // Always disconnect builder, even if build() fails
+            if (builder) {
+              try {
+                await builder.disconnect();
+              } catch (disconnectError) {
+                // Ignore disconnect errors, but log them for debugging
+                // eslint-disable-next-line no-console
+                console.error("Error disconnecting builder:", disconnectError);
+              }
+            }
           }
         } else {
           // This should be unreachable if all transaction types are handled

@@ -128,10 +128,13 @@ export const batchAgent = tool({
   }),
   // @ts-ignore - tool function overload issue with inline schemas
   // eslint-disable-next-line @typescript-eslint/require-await
-  execute: async (input) => {
+  execute: async (input: {
+    transactions: z.infer<typeof transactionSchema>[];
+    network?: string;
+  }) => {
     const { transactions } = input;
     try {
-      const transactionCount = transactions.length;
+      const transactionCount: number = transactions.length;
       return {
         tx: {
           transactionCount,
@@ -178,10 +181,13 @@ export const batchAllAgent = tool({
   }),
   // @ts-ignore - tool function overload issue with inline schemas
   // eslint-disable-next-line @typescript-eslint/require-await
-  execute: async (input) => {
+  execute: async (input: {
+    transactions: z.infer<typeof transactionSchema>[];
+    network?: string;
+  }) => {
     const { transactions } = input;
     try {
-      const transactionCount = transactions.length;
+      const transactionCount: number = transactions.length;
       return {
         tx: {
           transactionCount,

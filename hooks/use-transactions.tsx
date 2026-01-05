@@ -360,14 +360,34 @@ export function useTransactions() {
             sendMessage,
             sentMessages,
           );
-
-          await builder.disconnect();
         } catch (error: unknown) {
           const err = error as Error;
 
-          toast.error(`Failed to teleport xcm transaction: ${err.message}`, {
-            id: toastId,
-          });
+          // Check if it's a chain configuration error
+          if (
+            err.message.includes("relaychainSymbol") ||
+            err.message.includes("Cannot read properties of undefined")
+          ) {
+            toast.error(
+              `Chain configuration error: The Paraspell SDK may not have complete configuration for "${src}" or "${dst}". Please verify these chains are supported.`,
+              { id: toastId },
+            );
+          } else {
+            toast.error(`Failed to teleport xcm transaction: ${err.message}`, {
+              id: toastId,
+            });
+          }
+        } finally {
+          // Always disconnect builder, even if build() or createTransactionSubscription() fails
+          if (builder) {
+            try {
+              await builder.disconnect();
+            } catch (disconnectError) {
+              // Ignore disconnect errors, but log them for debugging
+              // eslint-disable-next-line no-console
+              console.error("Error disconnecting builder:", disconnectError);
+            }
+          }
         }
       }
     },
@@ -435,14 +455,34 @@ export function useTransactions() {
             sendMessage,
             sentMessages,
           );
-
-          await builder.disconnect();
         } catch (error: unknown) {
           const err = error as Error;
 
-          toast.error(`Failed to teleport xcm transaction: ${err.message}`, {
-            id: toastId,
-          });
+          // Check if it's a chain configuration error
+          if (
+            err.message.includes("relaychainSymbol") ||
+            err.message.includes("Cannot read properties of undefined")
+          ) {
+            toast.error(
+              `Chain configuration error: The Paraspell SDK may not have complete configuration for "${src}" or "${dst}". Please verify these chains are supported.`,
+              { id: toastId },
+            );
+          } else {
+            toast.error(`Failed to teleport xcm transaction: ${err.message}`, {
+              id: toastId,
+            });
+          }
+        } finally {
+          // Always disconnect builder, even if build() or createTransactionSubscription() fails
+          if (builder) {
+            try {
+              await builder.disconnect();
+            } catch (disconnectError) {
+              // Ignore disconnect errors, but log them for debugging
+              // eslint-disable-next-line no-console
+              console.error("Error disconnecting builder:", disconnectError);
+            }
+          }
         }
       }
     },

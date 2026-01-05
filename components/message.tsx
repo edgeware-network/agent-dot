@@ -5,6 +5,7 @@ import { useNominationPools } from "@/hooks/use-nomination-pools";
 import { useStaking } from "@/hooks/use-staking";
 import { useTransactions } from "@/hooks/use-transactions";
 import { useUtility, type BatchTransaction } from "@/hooks/use-utility";
+import { getNodeName } from "@/lib/paraspell";
 import { cn, sanitizeText } from "@/lib/utils";
 import { useTransactionQueueContext } from "@/providers/transaction-queue-provider";
 import {
@@ -938,6 +939,29 @@ function PurePreviewMessage({
 
                       if (!tx) return <div key={toolCallId}></div>;
 
+                      // Convert user-friendly names to system names for sendXcmTransaction
+                      const srcNodeName = getNodeName({
+                        name: tx.src,
+                        symbol: tx.symbol,
+                      });
+                      const dstNodeName = getNodeName({
+                        name: tx.dst,
+                        symbol: tx.symbol,
+                      });
+
+                      if (!srcNodeName || !dstNodeName) {
+                        void sendMessage({
+                          role: "assistant",
+                          parts: [
+                            {
+                              type: "text",
+                              text: `Error: Could not resolve chain names "${tx.src}" or "${tx.dst}" to system names.`,
+                            },
+                          ],
+                        });
+                        return <div key={toolCallId}></div>;
+                      }
+
                       // Check total number of transactions of ANY type in the message
                       const totalToolCalls = countAllTransactionToolCalls(
                         message.parts,
@@ -947,7 +971,7 @@ function PurePreviewMessage({
                         // Multiple transactions (of any type) - add to queue
                         const batchTx: BatchTransaction = {
                           type: "xcm",
-                          src: tx.src,
+                          src: tx.src, // Keep user-friendly names for batch (will be converted in buildTransactionCall)
                           dst: tx.dst,
                           recipient: tx.recipient,
                           amount: tx.amount,
@@ -962,9 +986,14 @@ function PurePreviewMessage({
                         // This prevents the useEffect from auto-batching
                       } else {
                         // Single transaction - execute immediately
-                        // DON'T push to xcmTransactionsRef - this prevents the useEffect from executing it again
+                        // Use system names for sendXcmTransaction
                         void sendXcmTransaction({
-                          ...tx,
+                          src: srcNodeName, // Convert to system name
+                          dst: dstNodeName, // Convert to system name
+                          amount: tx.amount,
+                          symbol: tx.symbol,
+                          sender: tx.sender, // This should be the active account
+                          recipient: tx.recipient,
                           sendMessage,
                         });
                       }
