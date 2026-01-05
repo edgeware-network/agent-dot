@@ -41,7 +41,7 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@reactive-dot/core": "^0.58.2",
-    "@reactive-dot/react": "^0.60.1",
+    "@reactive-dot/react": "^0.68.0",
     "@reactive-dot/wallet-ledger": "^0.16.61",
     "@reactive-dot/wallet-mimir": "^0.1.27",
     "@reactive-dot/wallet-walletconnect": "^0.17.40",
