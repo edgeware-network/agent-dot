@@ -91,6 +91,7 @@ function MultiView({
   views,
   handleNext,
   handlePrevious,
+  isMobile,
 }: {
   height: number | "auto";
   direction: number;
@@ -99,6 +100,7 @@ function MultiView({
   views: DialogView[];
   handleNext: () => void;
   handlePrevious: () => void;
+  isMobile: boolean;
 }) {
   const variants = {
     enter: (direction: number) => ({
@@ -141,6 +143,7 @@ function MultiView({
             <View
               title={views[currentView].title}
               description={views[currentView].description}
+              isMobile={isMobile}
             >
               {views[currentView].content({
                 next: handleNext,
@@ -201,6 +204,14 @@ export function MultiViewDialog({
 
   function handleOpenChange(open: boolean) {
     setIsWalletOpen(open);
+    // Ensure focus is removed from trigger when opening to prevent aria-hidden violation
+    if (open) {
+      // Small delay to ensure dialog is mounted before managing focus
+      setTimeout(() => {
+        const activeElement = document.activeElement as HTMLElement | null;
+        activeElement?.blur();
+      }, 0);
+    }
   }
 
   if (!isMobile) {
@@ -216,6 +227,7 @@ export function MultiViewDialog({
             views={views}
             handleNext={handleNext}
             handlePrevious={handlePrevious}
+            isMobile={false}
           />
         </SheetContent>
       </Sheet>
@@ -234,6 +246,7 @@ export function MultiViewDialog({
           views={views}
           handleNext={handleNext}
           handlePrevious={handlePrevious}
+          isMobile={true}
         />
       </DrawerContent>
     </Drawer>

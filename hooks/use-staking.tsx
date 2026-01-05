@@ -1,6 +1,11 @@
 "use client";
 
 /* eslint-disable @typescript-eslint/no-unnecessary-condition */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 
 import { StakingDescriptors } from "@/lib/polkadot-api";
 import { convertAmountToPlancks } from "@/lib/utils";
@@ -12,6 +17,7 @@ import { MultiAddress } from "@polkadot-api/descriptors";
 import { UIMessage } from "ai";
 import { useCallback } from "react";
 import { toast } from "sonner";
+import { getSubscanSubdomain } from "@/lib/utils";
 
 export function useStaking() {
   const client = useClient();
@@ -19,6 +25,206 @@ export function useStaking() {
   const activeChain =
     chainConfig.find((chain) => chain.key === chainId) ?? chainConfig[0];
   const { selectedAccount } = useWallet();
+
+  // Helper function to generate unique toast IDs
+  const generateToastId = () => {
+    return `tx-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  };
+
+  // Helper function to handle signSubmitAndWatch with status updates
+  const createTransactionSubscription = useCallback(
+    (
+      tx: any,
+      toastId: string,
+      transactionName: string,
+      sendMessage: UseChatHelpers<UIMessage>["sendMessage"],
+    ): Promise<string> => {
+      return new Promise<string>((resolve, reject) => {
+        let txHash: string | null = null;
+        let subscriptionObj: { unsubscribe: () => void } | null = null;
+        const sentMessages = new Set<string>();
+
+        try {
+          const subscription = tx.signSubmitAndWatch(
+            selectedAccount?.polkadotSigner,
+          );
+
+          subscriptionObj = subscription.subscribe({
+            next: (status: any) => {
+              // Set txHash as soon as we get it
+              if (status.txHash && !txHash) {
+                txHash = String(status.txHash);
+              }
+
+              if (status.type === "signed") {
+                txHash = txHash ?? String(status.txHash);
+                const id = `signed-${txHash}`;
+                if (sentMessages.has(id)) return;
+                sentMessages.add(id);
+
+                toast.loading(
+                  `${transactionName} transaction signed: ${txHash}...`,
+                  {
+                    id: toastId,
+                  },
+                );
+                // Only show toast, no chat message for signed status
+              } else if (status.type === "broadcasted") {
+                txHash ??= String(status.txHash);
+                const id = `broadcasted-${txHash}`;
+                if (sentMessages.has(id)) return;
+                sentMessages.add(id);
+
+                toast.loading(
+                  `${transactionName} transaction broadcasted: ${txHash}...`,
+                  { id: toastId },
+                );
+                // Only show toast, no chat message for broadcasted status
+              } else if (status.type === "txBestBlocksState") {
+                txHash ??= String(status.txHash);
+
+                if (status.found) {
+                  const blockHash = String(status.block.hash);
+                  const blockNumber = status.block.number;
+                  const id = `inblock-${txHash}-${blockNumber}`;
+
+                  if (sentMessages.has(id)) {
+                    toast.loading(
+                      `${transactionName} transaction included in block #${String(blockNumber)}: ${blockHash}...`,
+                      { id: toastId },
+                    );
+                    return;
+                  }
+                  sentMessages.add(id);
+
+                  toast.loading(
+                    `${transactionName} transaction included in block #${String(blockNumber)}: ${blockHash}...`,
+                    { id: toastId },
+                  );
+                  // Only show toast, no chat message for in-block status
+                } else {
+                  toast.loading(
+                    `${transactionName} transaction pending... (valid: ${status.isValid ? "yes" : "no"})`,
+                    { id: toastId },
+                  );
+                }
+              } else if (status.type === "finalized") {
+                const finalTxHash = txHash ?? String(status.txHash);
+                const blockHash = String(status.block.hash);
+                const blockNumber = status.block.number;
+                const id = `finalized-${finalTxHash}`;
+
+                if (sentMessages.has(id)) {
+                  return;
+                }
+                sentMessages.add(id);
+
+                if (!status.ok) {
+                  const errorMessage = status.dispatchError
+                    ? JSON.stringify(status.dispatchError)
+                    : "Transaction failed";
+                  toast.error(
+                    `${transactionName} transaction failed: ${errorMessage}`,
+                    {
+                      id: toastId,
+                    },
+                  );
+                  void sendMessage({
+                    role: "assistant",
+                    parts: [
+                      {
+                        type: "text",
+                        text: `${transactionName} transaction finalized in block #${String(blockNumber)} but failed: ${errorMessage}. Hash: ${finalTxHash}`,
+                      },
+                    ],
+                  });
+                  if (subscriptionObj) {
+                    subscriptionObj.unsubscribe();
+                  }
+                  reject(new Error(errorMessage));
+                  return;
+                }
+
+                toast.success(
+                  `${transactionName} transaction finalized: https://${getSubscanSubdomain(
+                    activeChain.name,
+                  )}.subscan.io/extrinsic/${finalTxHash}`,
+                  { id: toastId },
+                );
+                void sendMessage({
+                  role: "assistant",
+                  parts: [
+                    {
+                      type: "text",
+                      text: `${transactionName} transaction finalized in block #${String(blockNumber)} (${blockHash}): https://${getSubscanSubdomain(
+                        activeChain.name,
+                      )}.subscan.io/extrinsic/${finalTxHash}`,
+                    },
+                  ],
+                });
+                if (subscriptionObj) {
+                  subscriptionObj.unsubscribe();
+                }
+                resolve(finalTxHash);
+              }
+            },
+            error: (error: unknown) => {
+              const finalTxHash = txHash ?? "unknown";
+              const id = `error-${finalTxHash}`;
+              if (sentMessages.has(id)) {
+                if (subscriptionObj) {
+                  subscriptionObj.unsubscribe();
+                }
+                reject(
+                  error instanceof Error ? error : new Error(String(error)),
+                );
+                return;
+              }
+              sentMessages.add(id);
+
+              const errorMessage =
+                error instanceof Error ? error.message : "Unknown error";
+              toast.error(
+                `Failed to send ${transactionName} transaction: ${errorMessage}`,
+                { id: toastId },
+              );
+              void sendMessage({
+                role: "assistant",
+                parts: [
+                  {
+                    type: "text",
+                    text: `${transactionName} transaction failed: ${errorMessage}`,
+                  },
+                ],
+              });
+              if (subscriptionObj) {
+                subscriptionObj.unsubscribe();
+              }
+              reject(error instanceof Error ? error : new Error(String(error)));
+            },
+          });
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          toast.error(
+            `Failed to send ${transactionName} transaction: ${errorMessage}`,
+            { id: toastId },
+          );
+          void sendMessage({
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: `${transactionName} transaction failed: ${errorMessage}`,
+              },
+            ],
+          });
+          reject(error instanceof Error ? error : new Error(String(error)));
+        }
+      });
+    },
+    [selectedAccount, activeChain],
+  );
 
   const bond = useCallback(
     async ({
@@ -47,8 +253,10 @@ export function useStaking() {
       }
 
       if (selectedAccount && client && activeChain) {
-        const toastId = toast.loading(
+        const toastId = generateToastId();
+        toast.loading(
           `Processing the bond transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} to ${payee.type}`,
+          { id: toastId },
         );
         try {
           const value = BigInt(
@@ -65,32 +273,12 @@ export function useStaking() {
               value,
             });
 
-            const tx = await bondTx.signAndSubmit(
-              selectedAccount.polkadotSigner,
+            await createTransactionSubscription(
+              bondTx,
+              toastId,
+              "Bond",
+              sendMessage,
             );
-
-            if (!tx.ok) {
-              throw new Error(
-                `${tx.dispatchError.type}: ${JSON.stringify(tx.dispatchError.value, null, 2)}`,
-              );
-            }
-
-            toast.success(
-              `Bond transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} to ${payee.type}: ${payee.value} was successfully submitted. Transaction hash: ${tx.txHash}`,
-              {
-                id: toastId,
-              },
-            );
-
-            void sendMessage({
-              role: "assistant",
-              parts: [
-                {
-                  type: "text",
-                  text: `Bond transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} to ${payee.type}: ${payee.value} was successfully submitted. Transaction hash: ${tx.txHash}`,
-                },
-              ],
-            });
           }
 
           if (payee.type !== "Account") {
@@ -99,32 +287,12 @@ export function useStaking() {
               value,
             });
 
-            const tx = await bondTx.signAndSubmit(
-              selectedAccount.polkadotSigner,
+            await createTransactionSubscription(
+              bondTx,
+              toastId,
+              "Bond",
+              sendMessage,
             );
-
-            if (!tx.ok) {
-              throw new Error(
-                `${tx.dispatchError.type}: ${JSON.stringify(tx.dispatchError.value, null, 2)}`,
-              );
-            }
-
-            toast.success(
-              `Bond transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} to ${payee.type} was successfully submitted. Transaction hash: ${tx.txHash}`,
-              {
-                id: toastId,
-              },
-            );
-
-            void sendMessage({
-              role: "assistant",
-              parts: [
-                {
-                  type: "text",
-                  text: `Bond transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} to ${payee.type} was successfully submitted. Transaction hash: ${tx.txHash}`,
-                },
-              ],
-            });
           }
         } catch (e) {
           const errorMessage =
@@ -144,7 +312,7 @@ export function useStaking() {
         }
       }
     },
-    [selectedAccount],
+    [selectedAccount, createTransactionSubscription],
   );
 
   const unbond = useCallback(
@@ -169,8 +337,10 @@ export function useStaking() {
       }
 
       if (selectedAccount && client && activeChain) {
-        const toastId = toast.loading(
+        const toastId = generateToastId();
+        toast.loading(
           `Processing the unbonding transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol}`,
+          { id: toastId },
         );
         try {
           const value = BigInt(
@@ -181,32 +351,14 @@ export function useStaking() {
           );
           const descriptors = activeChain.descriptors as StakingDescriptors;
           const api = client.getTypedApi(descriptors);
-          const tx = await api.tx.Staking.unbond({ value }).signAndSubmit(
-            selectedAccount.polkadotSigner,
+          const unbondTx = api.tx.Staking.unbond({ value });
+
+          await createTransactionSubscription(
+            unbondTx,
+            toastId,
+            "Unbond",
+            sendMessage,
           );
-
-          if (!tx.ok) {
-            throw new Error(
-              `${tx.dispatchError.type}: ${JSON.stringify(tx.dispatchError.value, null, 2)}`,
-            );
-          }
-
-          toast.success(
-            `Unbond transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} was successfully submitted. Transaction hash: ${tx.txHash}`,
-            {
-              id: toastId,
-            },
-          );
-
-          void sendMessage({
-            role: "assistant",
-            parts: [
-              {
-                type: "text",
-                text: `Unbond transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} was successfully submitted. Transaction hash: ${tx.txHash}`,
-              },
-            ],
-          });
         } catch (e) {
           const errorMessage =
             e instanceof Error ? e.message : "An unknown error occurred.";
@@ -225,7 +377,7 @@ export function useStaking() {
         }
       }
     },
-    [selectedAccount],
+    [selectedAccount, createTransactionSubscription],
   );
 
   const bondExtra = useCallback(
@@ -250,8 +402,10 @@ export function useStaking() {
       }
 
       if (selectedAccount && client && activeChain) {
-        const toastId = toast.loading(
+        const toastId = generateToastId();
+        toast.loading(
           `Processing the bond extra transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol}`,
+          { id: toastId },
         );
         try {
           const maxAdditional = BigInt(
@@ -262,32 +416,16 @@ export function useStaking() {
           );
           const descriptors = activeChain.descriptors as StakingDescriptors;
           const api = client.getTypedApi(descriptors);
-          const tx = await api.tx.Staking.bond_extra({
+          const bondExtraTx = api.tx.Staking.bond_extra({
             max_additional: maxAdditional,
-          }).signAndSubmit(selectedAccount.polkadotSigner);
-
-          if (!tx.ok) {
-            throw new Error(
-              `${tx.dispatchError.type}: ${JSON.stringify(tx.dispatchError.value, null, 2)}`,
-            );
-          }
-
-          toast.success(
-            `Bond extra transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} was successfully submitted. Transaction hash: ${tx.txHash}`,
-            {
-              id: toastId,
-            },
-          );
-
-          void sendMessage({
-            role: "assistant",
-            parts: [
-              {
-                type: "text",
-                text: `Bond extra transaction of ${amount.toFixed(2)} ${activeChain.chainSpec.properties.tokenSymbol} was successfully submitted. Transaction hash: ${tx.txHash}`,
-              },
-            ],
           });
+
+          await createTransactionSubscription(
+            bondExtraTx,
+            toastId,
+            "Bond Extra",
+            sendMessage,
+          );
         } catch (e) {
           const errorMessage =
             e instanceof Error ? e.message : "An unknown error occurred.";
@@ -306,7 +444,7 @@ export function useStaking() {
         }
       }
     },
-    [selectedAccount, client, activeChain],
+    [selectedAccount, client, activeChain, createTransactionSubscription],
   );
 
   const nominate = useCallback(
@@ -331,38 +469,24 @@ export function useStaking() {
       }
 
       if (selectedAccount && client && activeChain) {
-        const toastId = toast.loading(
+        const toastId = generateToastId();
+        toast.loading(
           `Processing the nomination transaction of ${targets.length.toFixed(0)} validators on ${activeChain.key} network`,
+          { id: toastId },
         );
         try {
           const descriptors = activeChain.descriptors as StakingDescriptors;
           const api = client.getTypedApi(descriptors);
-          const tx = await api.tx.Staking.nominate({
+          const nominateTx = api.tx.Staking.nominate({
             targets: targets.map((target) => MultiAddress.Id(target)),
-          }).signAndSubmit(selectedAccount.polkadotSigner);
-
-          if (!tx.ok) {
-            throw new Error(
-              `${tx.dispatchError.type}: ${JSON.stringify(tx.dispatchError.value, null, 2)}`,
-            );
-          }
-
-          toast.success(
-            `Nomination transaction of ${targets.length.toFixed(0)} validators on ${activeChain.key} was successfully submitted. Transaction hash: ${tx.txHash}`,
-            {
-              id: toastId,
-            },
-          );
-
-          void sendMessage({
-            role: "assistant",
-            parts: [
-              {
-                type: "text",
-                text: `Nomination transaction of ${targets.join(", ")} validators on ${activeChain.key} was successfully submitted. Transaction hash: ${tx.txHash}`,
-              },
-            ],
           });
+
+          await createTransactionSubscription(
+            nominateTx,
+            toastId,
+            "Nominate",
+            sendMessage,
+          );
         } catch (e) {
           const errorMessage =
             e instanceof Error ? e.message : "An unknown error occurred.";
@@ -381,7 +505,7 @@ export function useStaking() {
         }
       }
     },
-    [selectedAccount],
+    [selectedAccount, createTransactionSubscription],
   );
 
   return {

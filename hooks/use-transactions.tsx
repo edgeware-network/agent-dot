@@ -23,7 +23,7 @@ import {
 import { MultiAddress } from "@polkadot-api/descriptors";
 import { useChainId, useTypedApi } from "@reactive-dot/react";
 import { UIMessage } from "ai";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { toast } from "sonner";
 
 export function useTransactions() {
@@ -32,6 +32,205 @@ export function useTransactions() {
   const activeChain =
     chainConfig.find((chain) => chain.key === chainId) ?? chainConfig[0];
   const { selectedAccount } = useWallet();
+  const sentMessages = useRef(new Set<string>());
+
+  // Helper function to generate unique toast IDs
+  const generateToastId = () => {
+    return `tx-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  };
+
+  // Helper function to handle signSubmitAndWatch with status updates
+  const createTransactionSubscription = useCallback(
+    (
+      tx: any,
+      toastId: string,
+      transactionName: string,
+      sendMessage: UseChatHelpers<UIMessage>["sendMessage"],
+      sentMessages: React.RefObject<Set<string>>,
+    ): Promise<string> => {
+      return new Promise<string>((resolve, reject) => {
+        let txHash: string | null = null;
+        let subscriptionObj: { unsubscribe: () => void } | null = null;
+
+        try {
+          const subscription = tx.signSubmitAndWatch(
+            selectedAccount?.polkadotSigner,
+          );
+
+          subscriptionObj = subscription.subscribe({
+            next: (status: any) => {
+              // Set txHash as soon as we get it
+              if (status.txHash && !txHash) {
+                txHash = String(status.txHash);
+              }
+
+              if (status.type === "signed") {
+                txHash = txHash ?? String(status.txHash);
+                const id = `signed-${txHash}`;
+                if (sentMessages.current.has(id)) return;
+                sentMessages.current.add(id);
+
+                toast.loading(
+                  `${transactionName} transaction signed: ${txHash}...`,
+                  {
+                    id: toastId,
+                  },
+                );
+                // Only show toast, no chat message for signed status
+              } else if (status.type === "broadcasted") {
+                txHash ??= String(status.txHash);
+                const id = `broadcasted-${txHash}`;
+                if (sentMessages.current.has(id)) return;
+                sentMessages.current.add(id);
+
+                toast.loading(
+                  `${transactionName} transaction broadcasted: ${txHash}...`,
+                  { id: toastId },
+                );
+                // Only show toast, no chat message for broadcasted status
+              } else if (status.type === "txBestBlocksState") {
+                txHash ??= String(status.txHash);
+
+                if (status.found) {
+                  const blockNumber = status.block.number;
+                  const id = `inblock-${txHash}-${blockNumber}`;
+
+                  if (sentMessages.current.has(id)) {
+                    toast.loading(
+                      `${transactionName} transaction included in block #${String(blockNumber)}: ${String(status.block.hash)}...`,
+                      { id: toastId },
+                    );
+                    return;
+                  }
+                  sentMessages.current.add(id);
+
+                  toast.loading(
+                    `${transactionName} transaction included in block #${String(blockNumber)}: ${String(status.block.hash)}...`,
+                    { id: toastId },
+                  );
+                  // Only show toast, no chat message for in-block status
+                } else {
+                  toast.loading(
+                    `${transactionName} transaction pending... (valid: ${status.isValid ? "yes" : "no"})`,
+                    { id: toastId },
+                  );
+                }
+              } else if (status.type === "finalized") {
+                const finalTxHash = txHash ?? String(status.txHash);
+                const blockNumber = status.block.number;
+                const id = `finalized-${finalTxHash}`;
+
+                if (sentMessages.current.has(id)) {
+                  return;
+                }
+                sentMessages.current.add(id);
+
+                if (!status.ok) {
+                  const errorMessage = status.dispatchError
+                    ? JSON.stringify(status.dispatchError)
+                    : "Transaction failed";
+                  toast.error(
+                    `${transactionName} transaction failed: ${errorMessage}`,
+                    {
+                      id: toastId,
+                    },
+                  );
+                  void sendMessage({
+                    role: "assistant",
+                    parts: [
+                      {
+                        type: "text",
+                        text: `${transactionName} transaction finalized in block #${String(blockNumber)} but failed: ${errorMessage}. Hash: ${finalTxHash}`,
+                      },
+                    ],
+                  });
+                  if (subscriptionObj) {
+                    subscriptionObj.unsubscribe();
+                  }
+                  reject(new Error(errorMessage));
+                  return;
+                }
+
+                toast.success(
+                  `${transactionName} transaction finalized: https://${getSubscanSubdomain(
+                    activeChain.name,
+                  )}.subscan.io/extrinsic/${finalTxHash}`,
+                  { id: toastId },
+                );
+                void sendMessage({
+                  role: "assistant",
+                  parts: [
+                    {
+                      type: "text",
+                      text: `The ${transactionName} transaction has been successfully finalized in block #${String(blockNumber)}! You can view the transaction details here: https://${getSubscanSubdomain(
+                        activeChain.name,
+                      )}.subscan.io/extrinsic/${finalTxHash}`,
+                    },
+                  ],
+                });
+                if (subscriptionObj) {
+                  subscriptionObj.unsubscribe();
+                }
+                resolve(finalTxHash);
+              }
+            },
+            error: (error: unknown) => {
+              const finalTxHash = txHash ?? "unknown";
+              const id = `error-${finalTxHash}`;
+              if (sentMessages.current.has(id)) {
+                if (subscriptionObj) {
+                  subscriptionObj.unsubscribe();
+                }
+                reject(
+                  error instanceof Error ? error : new Error(String(error)),
+                );
+                return;
+              }
+              sentMessages.current.add(id);
+
+              const errorMessage =
+                error instanceof Error ? error.message : "Unknown error";
+              toast.error(
+                `Failed to send ${transactionName} transaction: ${errorMessage}`,
+                { id: toastId },
+              );
+              void sendMessage({
+                role: "assistant",
+                parts: [
+                  {
+                    type: "text",
+                    text: `${transactionName} transaction failed: ${errorMessage}`,
+                  },
+                ],
+              });
+              if (subscriptionObj) {
+                subscriptionObj.unsubscribe();
+              }
+              reject(error instanceof Error ? error : new Error(String(error)));
+            },
+          });
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error";
+          toast.error(
+            `Failed to send ${transactionName} transaction: ${errorMessage}`,
+            { id: toastId },
+          );
+          void sendMessage({
+            role: "assistant",
+            parts: [
+              {
+                type: "text",
+                text: `${transactionName} transaction failed: ${errorMessage}`,
+              },
+            ],
+          });
+          reject(error instanceof Error ? error : new Error(String(error)));
+        }
+      });
+    },
+    [selectedAccount, activeChain],
+  );
 
   const sendTransaction = useCallback(
     async ({
@@ -55,8 +254,11 @@ export function useTransactions() {
         });
       }
 
-      const toastId = toast.loading(
+      sentMessages.current.clear();
+      const toastId = generateToastId();
+      toast.loading(
         `Processing transaction of ${String(amount)} ${activeChain.chainSpec.properties.tokenSymbol} to ${to}`,
+        { id: toastId },
       );
 
       if (api && selectedAccount) {
@@ -65,35 +267,18 @@ export function useTransactions() {
           10n ** BigInt(activeChain.chainSpec.properties.tokenDecimals);
 
         try {
-          const tx = await (api.tx.Balances.transfer_keep_alive as any)({
+          const tx = (api.tx.Balances.transfer_keep_alive as any)({
             dest: MultiAddress.Id(to),
             value,
-          }).signAndSubmit(selectedAccount.polkadotSigner);
-
-          if (!tx.ok) {
-            throw new Error(
-              `${tx.dispatchError.type}: ${JSON.stringify(tx.dispatchError.value, null, 2)}`,
-            );
-          }
-
-          toast.success(
-            `Transaction sent: https://${getSubscanSubdomain(activeChain.name)}.subscan.io/extrinsic/${tx.txHash}`,
-            {
-              id: toastId,
-            },
-          );
-
-          void sendMessage({
-            role: "assistant",
-            parts: [
-              {
-                type: "text",
-                text: `Transaction sent: https://${getSubscanSubdomain(
-                  activeChain.name,
-                )}.subscan.io/extrinsic/${tx.txHash}`,
-              },
-            ],
           });
+
+          await createTransactionSubscription(
+            tx,
+            toastId,
+            "Transfer",
+            sendMessage,
+            sentMessages,
+          );
         } catch (error: unknown) {
           const err = error as Error;
 
@@ -106,7 +291,13 @@ export function useTransactions() {
         }
       }
     },
-    [api, selectedAccount, activeChain],
+    [
+      api,
+      selectedAccount,
+      activeChain,
+      createTransactionSubscription,
+      sentMessages,
+    ],
   );
 
   const sendXcmTransaction = useCallback(
@@ -139,8 +330,11 @@ export function useTransactions() {
         });
       }
 
-      const toastId = toast.loading(
+      sentMessages.current.clear();
+      const toastId = generateToastId();
+      toast.loading(
         `Processing XCM transaction of ${amount.toFixed(3)} ${symbol} from ${src} to ${dst}`,
+        { id: toastId },
       );
 
       if (selectedAccount) {
@@ -159,47 +353,45 @@ export function useTransactions() {
 
           const tx = await builder.build();
 
-          const xcm = await tx.signAndSubmit(selectedAccount.polkadotSigner);
-
-          if (!xcm.ok) {
-            throw new Error(
-              `${xcm.dispatchError.type}: ${JSON.stringify(xcm.dispatchError.value, null, 2)}`,
-            );
-          }
-
-          // BUG: might not for some chains src naming is different eg. peoplepolkadot is people-polkadot
-          toast.success(
-            `XCM transaction sent: https://${getSubscanSubdomain(src)}.subscan.io/extrinsic/${xcm.txHash}`,
-            {
-              id: toastId,
-            },
+          await createTransactionSubscription(
+            tx,
+            toastId,
+            "XCM",
+            sendMessage,
+            sentMessages,
           );
-
-          void sendMessage(
-            {
-              role: "assistant",
-              parts: [
-                {
-                  type: "text",
-                  text: `XCM transaction sent: https://${getSubscanSubdomain(
-                    src,
-                  )}.subscan.io/extrinsic/${xcm.txHash}`,
-                },
-              ],
-            },
-            { metadata: { xcm } },
-          );
-          await builder.disconnect();
         } catch (error: unknown) {
           const err = error as Error;
 
-          toast.error(`Failed to teleport xcm transaction: ${err.message}`, {
-            id: toastId,
-          });
+          // Check if it's a chain configuration error
+          if (
+            err.message.includes("relaychainSymbol") ||
+            err.message.includes("Cannot read properties of undefined")
+          ) {
+            toast.error(
+              `Chain configuration error: The Paraspell SDK may not have complete configuration for "${src}" or "${dst}". Please verify these chains are supported.`,
+              { id: toastId },
+            );
+          } else {
+            toast.error(`Failed to teleport xcm transaction: ${err.message}`, {
+              id: toastId,
+            });
+          }
+        } finally {
+          // Always disconnect builder, even if build() or createTransactionSubscription() fails
+          if (builder) {
+            try {
+              await builder.disconnect();
+            } catch (disconnectError) {
+              // Ignore disconnect errors, but log them for debugging
+              // eslint-disable-next-line no-console
+              console.error("Error disconnecting builder:", disconnectError);
+            }
+          }
         }
       }
     },
-    [selectedAccount, activeChain],
+    [selectedAccount, createTransactionSubscription, sentMessages],
   );
 
   const sendXcmStablecoinTransaction = useCallback(
@@ -233,8 +425,11 @@ export function useTransactions() {
         });
       }
 
-      const toastId = toast.loading(
+      sentMessages.current.clear();
+      const toastId = generateToastId();
+      toast.loading(
         `Processing XCM transaction of ${amount.toFixed(3)} ${symbol} from ${src} to ${dst}`,
+        { id: toastId },
       );
 
       if (selectedAccount) {
@@ -253,44 +448,45 @@ export function useTransactions() {
 
           const tx = await builder.build();
 
-          const xcm = await tx.signAndSubmit(selectedAccount.polkadotSigner);
-
-          if (!xcm.ok) {
-            throw new Error(
-              `${xcm.dispatchError.type}: ${JSON.stringify(xcm.dispatchError.value, null, 2)}`,
-            );
-          }
-
-          toast.success(
-            `XCM transaction sent: https://assethub-polkadot.subscan.io/extrinsic/${xcm.txHash}`,
-            {
-              id: toastId,
-            },
+          await createTransactionSubscription(
+            tx,
+            toastId,
+            "XCM Stablecoin",
+            sendMessage,
+            sentMessages,
           );
-
-          void sendMessage(
-            {
-              role: "assistant",
-              parts: [
-                {
-                  type: "text",
-                  text: `XCM transaction sent: https://assethub-polkadot.subscan.io/extrinsic/${xcm.txHash}`,
-                },
-              ],
-            },
-            { metadata: { xcm } },
-          );
-          await builder.disconnect();
         } catch (error: unknown) {
           const err = error as Error;
 
-          toast.error(`Failed to teleport xcm transaction: ${err.message}`, {
-            id: toastId,
-          });
+          // Check if it's a chain configuration error
+          if (
+            err.message.includes("relaychainSymbol") ||
+            err.message.includes("Cannot read properties of undefined")
+          ) {
+            toast.error(
+              `Chain configuration error: The Paraspell SDK may not have complete configuration for "${src}" or "${dst}". Please verify these chains are supported.`,
+              { id: toastId },
+            );
+          } else {
+            toast.error(`Failed to teleport xcm transaction: ${err.message}`, {
+              id: toastId,
+            });
+          }
+        } finally {
+          // Always disconnect builder, even if build() or createTransactionSubscription() fails
+          if (builder) {
+            try {
+              await builder.disconnect();
+            } catch (disconnectError) {
+              // Ignore disconnect errors, but log them for debugging
+              // eslint-disable-next-line no-console
+              console.error("Error disconnecting builder:", disconnectError);
+            }
+          }
         }
       }
     },
-    [selectedAccount],
+    [selectedAccount, createTransactionSubscription, sentMessages],
   );
 
   return { sendTransaction, sendXcmTransaction, sendXcmStablecoinTransaction };
