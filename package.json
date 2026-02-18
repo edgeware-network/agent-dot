@@ -29,7 +29,7 @@
   "dependencies": {
     "@ai-sdk/openai": "2.0.7",
     "@ai-sdk/react": "2.0.8",
-    "@hookform/resolvers": "^5.2.1",
+    "@hookform/resolvers": "^5.2.2",
     "@neondatabase/serverless": "^1.0.1",
     "@paraspell/sdk": "^12.1.1",
     "@polkadot-api/descriptors": "file:.papi/descriptors",
